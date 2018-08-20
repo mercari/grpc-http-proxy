@@ -6,10 +6,17 @@ import (
 	"os"
 
 	"github.com/mercari/grpc-http-proxy/http"
+	"github.com/mercari/grpc-http-proxy/log"
 )
 
 func main() {
-	s := http.New("foo")
+	logger, err := log.NewLogger()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "[ERROR] Failed to create logger: %s\n", err)
+		os.Exit(1)
+	}
+	s := http.New("foo", logger)
+	logger.Info("starting grpc-http-proxy")
 
 	port := 3000
 	addr := fmt.Sprintf(":%d", port)

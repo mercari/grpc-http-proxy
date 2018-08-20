@@ -1,6 +1,7 @@
 package http
 
 import (
+	"go.uber.org/zap"
 	"net"
 	"net/http"
 )
@@ -8,12 +9,14 @@ import (
 type Server struct {
 	router      *http.ServeMux
 	accessToken string
+	logger      *zap.Logger
 }
 
-func New(token string) *Server {
+func New(token string, logger *zap.Logger) *Server {
 	s := &Server{
 		router:      http.NewServeMux(),
 		accessToken: token,
+		logger:      logger,
 	}
 	s.registerHandlers()
 

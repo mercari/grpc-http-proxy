@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/mercari/grpc-http-proxy/log"
 )
 
 func TestServer_withAccessToken(t *testing.T) {
@@ -23,7 +25,7 @@ func TestServer_withAccessToken(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(*testing.T) {
-			server := New(tc.token)
+			server := New(tc.token, log.NewNullLogger())
 			rr := httptest.NewRecorder()
 			handlerF := server.withAccessToken(func(w http.ResponseWriter, r *http.Request) {
 				panic("this shouldn't be called")

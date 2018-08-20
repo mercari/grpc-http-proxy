@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/mercari/grpc-http-proxy/log"
 )
 
 func TestServer_LivenessProbeHandler(t *testing.T) {
@@ -23,7 +25,7 @@ func TestServer_LivenessProbeHandler(t *testing.T) {
 			status: http.StatusMethodNotAllowed,
 		},
 	}
-	server := New("foo")
+	server := New("foo", log.NewNullLogger())
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
@@ -50,7 +52,7 @@ func TestServer_CatchAllHandler(t *testing.T) {
 		},
 	}
 	for _, tc := range cases {
-		server := New("foo")
+		server := New("foo", log.NewNullLogger())
 		t.Run(tc.name, func(*testing.T) {
 			rr := httptest.NewRecorder()
 			handlerF := server.CatchAllHandler()
@@ -113,7 +115,7 @@ func TestServer_RPCCallHandler(t *testing.T) {
 			resp:        "",
 		},
 	}
-	server := New("foo")
+	server := New("foo", log.NewNullLogger())
 	for _, tc := range cases {
 		t.Run(tc.name, func(*testing.T) {
 			rr := httptest.NewRecorder()
