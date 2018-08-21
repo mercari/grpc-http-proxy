@@ -28,3 +28,15 @@
 [prune]
   go-tests = true
   unused-packages = true
+
+[[constraint]]
+    name = "k8s.io/client-go"
+    version = "v8.0"
+
+[[override]]
+    name = "k8s.io/apimachinery"
+    branch = "release-1.11"
+
+[[override]]
+    name = "k8s.io/api"
+    branch = "release-1.11"

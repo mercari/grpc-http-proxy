@@ -41,11 +41,20 @@ func TestNewRecordsFromYAML(t *testing.T) {
 			mappingFile: "test-fixtures/valid.yaml",
 			expected: map[string]versions{
 				"a": {
-					"v1": parseUrl("a.v1", t),
-					"v2": parseUrl("a.v2", t),
+					"v1": entry{
+						true,
+						parseUrl("a.v1", t),
+					},
+					"v2": entry{
+						true,
+						parseUrl("a.v2", t),
+					},
 				},
 				"b": {
-					"v1": parseUrl("b.v1", t),
+					"v1": entry{
+						true,
+						parseUrl("b.v1", t),
+					},
 				},
 			},
 			err: nil,
@@ -112,11 +121,20 @@ func TestRecords_GetRecord(t *testing.T) {
 	r := records{
 		m: map[string]versions{
 			"a": {
-				"v1": parseUrl("a.v1", t),
-				"v2": parseUrl("a.v2", t),
+				"v1": entry{
+					true,
+					parseUrl("a.v1", t),
+				},
+				"v2": entry{
+					true,
+					parseUrl("a.v2", t),
+				},
 			},
 			"b": {
-				"v1": parseUrl("b.v1", t),
+				"v1": entry{
+					true,
+					parseUrl("b.v1", t),
+				},
 			},
 		},
 		mutex: sync.RWMutex{},
@@ -161,13 +179,22 @@ func TestRecords_SetRecord(t *testing.T) {
 			url:     parseUrl("a.v2", t),
 			m: map[string]versions{
 				"a": {
-					"v1": parseUrl("a.v1", t),
+					"v1": entry{
+						true,
+						parseUrl("a.v1", t),
+					},
 				},
 			},
 			expected: map[string]versions{
 				"a": {
-					"v1": parseUrl("a.v1", t),
-					"v2": parseUrl("a.v2", t),
+					"v1": entry{
+						true,
+						parseUrl("a.v1", t),
+					},
+					"v2": entry{
+						true,
+						parseUrl("a.v2", t),
+					},
 				},
 			},
 		},
@@ -179,7 +206,10 @@ func TestRecords_SetRecord(t *testing.T) {
 			m:       map[string]versions{},
 			expected: map[string]versions{
 				"b": {
-					"v1": parseUrl("b.v1", t),
+					"v1": entry{
+						true,
+						parseUrl("b.v1", t),
+					},
 				},
 			},
 		},
@@ -205,12 +235,12 @@ func TestRecords_IsServiceUnique(t *testing.T) {
 		b       bool
 	}{
 		{
-			name:    "not unique",
+			name:    "not decidable",
 			service: "a",
 			b:       false,
 		},
 		{
-			name:    "unique",
+			name:    "decidable",
 			service: "b",
 			b:       true,
 		},
@@ -219,11 +249,20 @@ func TestRecords_IsServiceUnique(t *testing.T) {
 	r := records{
 		m: map[string]versions{
 			"a": {
-				"v1": parseUrl("a.v1", t),
-				"v2": parseUrl("a.v2", t),
+				"v1": entry{
+					true,
+					parseUrl("a.v1", t),
+				},
+				"v2": entry{
+					true,
+					parseUrl("a.v2", t),
+				},
 			},
 			"b": {
-				"v1": parseUrl("b.v1", t),
+				"v1": entry{
+					true,
+					parseUrl("b.v1", t),
+				},
 			},
 		},
 		mutex: sync.RWMutex{},
@@ -252,13 +291,22 @@ func TestRecords_RemoveRecord(t *testing.T) {
 			version: "v1",
 			m: map[string]versions{
 				"a": {
-					"v1": parseUrl("a.v1", t),
-					"v2": parseUrl("a.v2", t),
+					"v1": entry{
+						true,
+						parseUrl("a.v1", t),
+					},
+					"v2": entry{
+						true,
+						parseUrl("a.v2", t),
+					},
 				},
 			},
 			expected: map[string]versions{
 				"a": {
-					"v2": parseUrl("a.v2", t),
+					"v2": entry{
+						true,
+						parseUrl("a.v2", t),
+					},
 				},
 			},
 		},
@@ -268,7 +316,10 @@ func TestRecords_RemoveRecord(t *testing.T) {
 			version: "v1",
 			m: map[string]versions{
 				"b": {
-					"v1": parseUrl("b.v1", t),
+					"v1": entry{
+						true,
+						parseUrl("b.v1", t),
+					},
 				},
 			},
 			expected: map[string]versions{},

@@ -19,6 +19,7 @@ const (
 	Unauthorized        Code = 7
 	Unknown             Code = 8
 	VersionNotSpecified Code = 9
+	VersionUndecidable  Code = 10
 )
 
 func (e *Error) Error() string {
@@ -40,7 +41,9 @@ func (e *Error) Error() string {
 	case Unauthorized:
 		return "unauthorized"
 	case VersionNotSpecified:
-		return "multiple versions of this service exist. Specify version in request"
+		return "multiple versions of this service exist. specify version in request"
+	case VersionUndecidable:
+		return "multiple backends exist. add version annotations"
 	default:
 		return "unknown failure"
 	}

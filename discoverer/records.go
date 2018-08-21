@@ -11,7 +11,12 @@ import (
 	"github.com/mercari/grpc-http-proxy"
 )
 
-type versions map[string]proxy.ServiceURL
+type versions map[string]entry
+
+type entry struct {
+	decidable bool
+	url       proxy.ServiceURL
+}
 
 type records struct {
 	m     map[string]versions
@@ -37,6 +42,14 @@ func versionNotSpecified(svc string) *proxy.Error {
 		Code: proxy.VersionNotSpecified,
 		Message: fmt.Sprintf("There are multiple version of the gRPC service %s available. "+
 			"You must specify one", svc),
+	}
+}
+
+func versionUndecidable(svc string) *proxy.Error {
+	return &proxy.Error{
+		Code: proxy.VersionUndecidable,
+		Message: fmt.Sprintf("Multiple possible backends found for the gRPC service %s. "+
+			"Add annotations to distinguish versions", svc),
 	}
 }
 
@@ -73,6 +86,12 @@ func NewRecordsFromYAML(yamlFile string) (*records, error) {
 	return r, nil
 }
 
+func (r *records) ClearRecords() {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+	r.m = make(map[string]versions)
+}
+
 func (r records) GetRecord(svc, version string) (proxy.ServiceURL, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
@@ -85,26 +104,42 @@ func (r records) GetRecord(svc, version string) (proxy.ServiceURL, error) {
 			return nil, versionNotSpecified(svc)
 		}
 		for _, u := range vs {
-			return u, nil // this returns the first (and only) ServiceURL
+			return u.url, nil // this returns the first (and only) ServiceURL
 		}
 	}
-	u, ok := vs[version]
+	e, ok := vs[version]
 	if !ok {
 		return nil, versionNotFound(svc, version)
 	}
-	return u, nil
+	if !e.decidable {
+		return nil, versionUndecidable(svc)
+	}
+	return e.url, nil
 }
 
-func (r records) SetRecord(svc, version string, url proxy.ServiceURL) {
+// SetRecord sets the backend service URL for the specifiec (service, version) pair.
+// When successful, true will be returned.
+// This fails if the URL for the blank version ("") is to be overwritten, and invalidates that entry.
+func (r records) SetRecord(svc, version string, url proxy.ServiceURL) bool {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	if _, ok := r.m[svc]; !ok {
-		r.m[svc] = make(map[string]proxy.ServiceURL)
+		r.m[svc] = make(map[string]entry)
 	}
-	r.m[svc][version] = url
+	if _, ok := r.m[svc][version]; ok && version == "" {
+		r.m[svc][version] = entry{
+			decidable: false,
+		}
+		return false
+	}
+	r.m[svc][version] = entry{
+		decidable: true,
+		url:       url,
+	}
+	return true
 }
 
-func (r records) RemoveRecord(svc, version string) {
+func (r *records) RemoveRecord(svc, version string) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -118,7 +153,7 @@ func (r records) RemoveRecord(svc, version string) {
 	}
 }
 
-func (r records) IsServiceUnique(svc string) bool {
+func (r *records) IsServiceUnique(svc string) bool {
 	r.mutex.RLock()
 	b := len(r.m[svc]) == 1
 	r.mutex.RUnlock()

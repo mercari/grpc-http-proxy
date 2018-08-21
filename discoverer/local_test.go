@@ -20,11 +20,20 @@ func TestNewLocal(t *testing.T) {
 			yamlFile: "test-fixtures/valid.yaml",
 			expected: map[string]versions{
 				"a": {
-					"v1": parseUrl("a.v1", t),
-					"v2": parseUrl("a.v2", t),
+					"v1": entry{
+						decidable: true,
+						url:       parseUrl("a.v1", t),
+					},
+					"v2": entry{
+						decidable: true,
+						url:       parseUrl("a.v2", t),
+					},
 				},
 				"b": {
-					"v1": parseUrl("b.v1", t),
+					"v1": entry{
+						decidable: true,
+						url:       parseUrl("b.v1", t),
+					},
 				},
 			},
 		},
@@ -77,7 +86,10 @@ func TestLocal_Resolve(t *testing.T) {
 	r := records{
 		m: map[string]versions{
 			"a": {
-				"v1": parseUrl("a.v1", t),
+				"v1": entry{
+					decidable: true,
+					url:       parseUrl("a.v1", t),
+				},
 			},
 		},
 		mutex: sync.RWMutex{},
