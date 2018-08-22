@@ -3,18 +3,16 @@ package http
 import (
 	"net"
 	"net/http"
-
-	"github.com/gorilla/mux"
 )
 
 type Server struct {
-	router      *mux.Router
+	router      *http.ServeMux
 	accessToken string
 }
 
 func New(token string) *Server {
 	s := &Server{
-		router:      mux.NewRouter(),
+		router:      http.NewServeMux(),
 		accessToken: token,
 	}
 	s.routes()
