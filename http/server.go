@@ -15,7 +15,7 @@ func New(token string) *Server {
 		router:      http.NewServeMux(),
 		accessToken: token,
 	}
-	s.routes()
+	s.registerHandlers()
 
 	return s
 }
