@@ -22,6 +22,12 @@ func (s *Server) LivenessProbeHandler() http.HandlerFunc {
 	}
 }
 
+func (s *Server) CatchAllHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	}
+}
+
 func (s *Server) RPCCallHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -30,21 +36,21 @@ func (s *Server) RPCCallHandler() http.HandlerFunc {
 			return
 		}
 		parts := strings.Split(r.URL.Path, "/")
-		if len(parts) != 3 && len(parts) != 4 {
+		if len(parts) != 4 && len(parts) != 5 {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		if len(parts) == 3 {
+		if len(parts) == 4 {
 			resp := placeholderResponse{
-				Service: parts[1],
-				Method:  parts[2],
+				Service: parts[2],
+				Method:  parts[3],
 			}
 			json.NewEncoder(w).Encode(resp)
-		} else if len(parts) == 4 {
+		} else if len(parts) == 5 {
 			resp := placeholderResponse{
-				Service: parts[1],
-				Version: parts[2],
-				Method:  parts[3],
+				Service: parts[2],
+				Version: parts[3],
+				Method:  parts[4],
 			}
 			json.NewEncoder(w).Encode(resp)
 		}

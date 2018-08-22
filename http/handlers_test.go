@@ -37,6 +37,32 @@ func TestServer_LivenessProbeHandler(t *testing.T) {
 	}
 }
 
+func TestServer_CatchAllHandler(t *testing.T) {
+	cases := []struct {
+		name   string
+		status int
+		path   string
+	}{
+		{
+			name:   "not found",
+			status: http.StatusNotFound,
+			path:   "/notfound",
+		},
+	}
+	for _, tc := range cases {
+		server := New("foo")
+		t.Run(tc.name, func(*testing.T) {
+			rr := httptest.NewRecorder()
+			handlerF := server.CatchAllHandler()
+			handlerF(rr, httptest.NewRequest(http.MethodGet, tc.path, nil))
+
+			if got, want := rr.Result().StatusCode, tc.status; got != want {
+				t.Fatalf("got %d, want %d", got, want)
+			}
+		})
+	}
+}
+
 func TestServer_RPCCallHandler(t *testing.T) {
 	cases := []struct {
 		name        string
@@ -50,7 +76,7 @@ func TestServer_RPCCallHandler(t *testing.T) {
 			name:        "success (without version)",
 			status:      http.StatusOK,
 			contentType: "application/json",
-			path:        "/svc/method",
+			path:        "/v1/svc/method",
 			method:      http.MethodPost,
 			resp:        "{\"service\":\"svc\",\"version\":\"\",\"method\":\"method\"}\n",
 		},
@@ -58,7 +84,7 @@ func TestServer_RPCCallHandler(t *testing.T) {
 			name:        "success (with version)",
 			status:      http.StatusOK,
 			contentType: "application/json",
-			path:        "/svc/version/method",
+			path:        "/v1/svc/version/method",
 			method:      http.MethodPost,
 			resp:        "{\"service\":\"svc\",\"version\":\"version\",\"method\":\"method\"}\n",
 		},
@@ -66,7 +92,7 @@ func TestServer_RPCCallHandler(t *testing.T) {
 			name:        "invalid path",
 			status:      http.StatusNotFound,
 			contentType: "application/json",
-			path:        "/notfound",
+			path:        "/v1/svc/method/too/long",
 			method:      http.MethodPost,
 			resp:        "",
 		},
@@ -74,7 +100,7 @@ func TestServer_RPCCallHandler(t *testing.T) {
 			name:        "method not allowed",
 			status:      http.StatusMethodNotAllowed,
 			contentType: "application/json",
-			path:        "/svc/version",
+			path:        "/v1/svc/version",
 			method:      http.MethodGet,
 			resp:        "",
 		},
