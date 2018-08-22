@@ -30,7 +30,6 @@ func (s *Server) CatchAllHandler() http.HandlerFunc {
 
 func (s *Server) RPCCallHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
 		if r.Method != http.MethodPost {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
@@ -51,6 +50,7 @@ func (s *Server) RPCCallHandler() http.HandlerFunc {
 			}
 			resp.Version = v[0]
 		}
+		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(resp)
 		return
 	}

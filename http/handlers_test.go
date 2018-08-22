@@ -91,7 +91,7 @@ func TestServer_RPCCallHandler(t *testing.T) {
 		{
 			name:        "multiple versions specified",
 			status:      http.StatusBadRequest,
-			contentType: "application/json",
+			contentType: "",
 			path:        "/v1/svc/method?version=v1&version=v2",
 			method:      http.MethodPost,
 			resp:        "",
@@ -99,7 +99,7 @@ func TestServer_RPCCallHandler(t *testing.T) {
 		{
 			name:        "invalid path",
 			status:      http.StatusNotFound,
-			contentType: "application/json",
+			contentType: "",
 			path:        "/v1/svc/method/toolong",
 			method:      http.MethodPost,
 			resp:        "",
@@ -107,7 +107,7 @@ func TestServer_RPCCallHandler(t *testing.T) {
 		{
 			name:        "method not allowed",
 			status:      http.StatusMethodNotAllowed,
-			contentType: "application/json",
+			contentType: "",
 			path:        "/v1/svc/version",
 			method:      http.MethodGet,
 			resp:        "",
@@ -123,7 +123,11 @@ func TestServer_RPCCallHandler(t *testing.T) {
 			if got, want := rr.Result().StatusCode, tc.status; got != want {
 				t.Fatalf("got %d, want %d", got, want)
 			}
-			contentType := rr.Result().Header["Content-Type"][0]
+
+			var contentType string
+			if len(rr.Result().Header["Content-Type"]) == 1 {
+				contentType = rr.Result().Header["Content-Type"][0]
+			}
 			if got, want := contentType, tc.contentType; got != want {
 				t.Fatalf("got %s, want %s", got, want)
 			}

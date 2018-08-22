@@ -16,7 +16,7 @@ func TestServer_withAccessToken(t *testing.T) {
 		{
 			name:        "unauthorized",
 			status:      http.StatusUnauthorized,
-			contentType: "application/json",
+			contentType: "",
 			token:       "foo",
 		},
 	}
@@ -33,7 +33,10 @@ func TestServer_withAccessToken(t *testing.T) {
 			if got, want := rr.Result().StatusCode, tc.status; got != want {
 				t.Fatalf("got %d, want %d", got, want)
 			}
-			contentType := rr.Result().Header["Content-Type"][0]
+			var contentType string
+			if len(rr.Result().Header["Content-Type"]) == 1 {
+				contentType = rr.Result().Header["Content-Type"][0]
+			}
 			if got, want := contentType, tc.contentType; got != want {
 				t.Fatalf("got %s, want %s", got, want)
 			}
