@@ -10,27 +10,40 @@ import (
 
 func TestServer_withAccessToken(t *testing.T) {
 	cases := []struct {
-		name        string
-		status      int
-		contentType string
-		token       string
+		name          string
+		status        int
+		contentType   string
+		token         string
+		expectedToken string
 	}{
 		{
-			name:        "unauthorized",
-			status:      http.StatusUnauthorized,
-			contentType: "",
-			token:       "foo",
+			name:          "no token",
+			status:        http.StatusUnauthorized,
+			contentType:   "",
+			token:         "",
+			expectedToken: "foo",
+		},
+		{
+			name:          "wrong token",
+			status:        http.StatusUnauthorized,
+			contentType:   "",
+			token:         "bar",
+			expectedToken: "foo",
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(*testing.T) {
-			server := New(tc.token, log.NewDiscard())
+			server := New(tc.expectedToken, log.NewDiscard())
 			rr := httptest.NewRecorder()
 			handlerF := server.withAccessToken(func(w http.ResponseWriter, r *http.Request) {
 				panic("this shouldn't be called")
 			})
-			handlerF(rr, httptest.NewRequest("GET", "/", nil))
+			req := httptest.NewRequest("GET", "/", nil)
+			if tc.token != "" {
+				req.Header.Set("X-Access-Token", tc.token)
+			}
+			handlerF(rr, req)
 
 			if got, want := rr.Result().StatusCode, tc.status; got != want {
 				t.Fatalf("got %d, want %d", got, want)
