@@ -36,24 +36,22 @@ func (s *Server) RPCCallHandler() http.HandlerFunc {
 			return
 		}
 		parts := strings.Split(r.URL.Path, "/")
-		if len(parts) != 4 && len(parts) != 5 {
+		if len(parts) != 4 {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		if len(parts) == 4 {
-			resp := placeholderResponse{
-				Service: parts[2],
-				Method:  parts[3],
-			}
-			json.NewEncoder(w).Encode(resp)
-		} else if len(parts) == 5 {
-			resp := placeholderResponse{
-				Service: parts[2],
-				Version: parts[3],
-				Method:  parts[4],
-			}
-			json.NewEncoder(w).Encode(resp)
+		resp := placeholderResponse{
+			Service: parts[2],
+			Method:  parts[3],
 		}
+		if v, ok := r.URL.Query()["version"]; ok {
+			if len(v) != 1 {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			resp.Version = v[0]
+		}
+		json.NewEncoder(w).Encode(resp)
 		return
 	}
 }
