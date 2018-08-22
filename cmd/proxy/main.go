@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	logger, err := log.NewLogger()
+	logger, err := log.NewLogger("INFO")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "[ERROR] Failed to create logger: %s\n", err)
 		os.Exit(1)
