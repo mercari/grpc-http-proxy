@@ -25,7 +25,7 @@ func TestServer_LivenessProbeHandler(t *testing.T) {
 			status: http.StatusMethodNotAllowed,
 		},
 	}
-	server := New("foo", log.NewNullLogger())
+	server := New("foo", log.NewDiscard())
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
@@ -52,7 +52,7 @@ func TestServer_CatchAllHandler(t *testing.T) {
 		},
 	}
 	for _, tc := range cases {
-		server := New("foo", log.NewNullLogger())
+		server := New("foo", log.NewDiscard())
 		t.Run(tc.name, func(*testing.T) {
 			rr := httptest.NewRecorder()
 			handlerF := server.CatchAllHandler()
@@ -115,7 +115,7 @@ func TestServer_RPCCallHandler(t *testing.T) {
 			resp:        "",
 		},
 	}
-	server := New("foo", log.NewNullLogger())
+	server := New("foo", log.NewDiscard())
 	for _, tc := range cases {
 		t.Run(tc.name, func(*testing.T) {
 			rr := httptest.NewRecorder()

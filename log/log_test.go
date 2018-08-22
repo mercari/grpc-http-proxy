@@ -13,6 +13,6 @@ func TestNewLogger(t *testing.T) {
 }
 
 func TestNewNullLogger(t *testing.T) {
-	l := NewNullLogger()
+	l := NewDiscard()
 	l.Info("test output", zap.String("key", "value"))
 }

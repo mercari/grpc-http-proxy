@@ -15,8 +15,8 @@ func NewLogger() (*zap.Logger, error) {
 	return config.Build()
 }
 
-// NewNullLogger creates a new zap logger which discards everything
+// NewDiscard creates a new zap logger which discards everything
 // This is for unit tests
-func NewNullLogger() *zap.Logger {
+func NewDiscard() *zap.Logger {
 	return zap.NewNop()
 }

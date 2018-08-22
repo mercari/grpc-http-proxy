@@ -25,7 +25,7 @@ func TestServer_withAccessToken(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(*testing.T) {
-			server := New(tc.token, log.NewNullLogger())
+			server := New(tc.token, log.NewDiscard())
 			rr := httptest.NewRecorder()
 			handlerF := server.withAccessToken(func(w http.ResponseWriter, r *http.Request) {
 				panic("this shouldn't be called")
