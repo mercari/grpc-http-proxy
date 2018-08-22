@@ -78,7 +78,7 @@ func TestServer_RPCCallHandler(t *testing.T) {
 			contentType: "application/json",
 			path:        "/v1/svc/method",
 			method:      http.MethodPost,
-			resp:        "{\"service\":\"svc\",\"version\":\"\",\"method\":\"method\"}\n",
+			resp:        "{\"serviceVersion\":\"\",\"service\":\"svc\",\"method\":\"method\"}\n",
 		},
 		{
 			name:        "success (with version)",
@@ -86,7 +86,7 @@ func TestServer_RPCCallHandler(t *testing.T) {
 			contentType: "application/json",
 			path:        "/v1/svc/method?version=v1",
 			method:      http.MethodPost,
-			resp:        "{\"service\":\"svc\",\"version\":\"v1\",\"method\":\"method\"}\n",
+			resp:        "{\"serviceVersion\":\"v1\",\"service\":\"svc\",\"method\":\"method\"}\n",
 		},
 		{
 			name:        "multiple versions specified",
