@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
-
-	"go.uber.org/zap"
 )
 
 // This struct is for a dummy response. It will be removed in the future.
@@ -18,18 +16,9 @@ type placeholderResponse struct {
 func (s *Server) LivenessProbeHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
-			defer s.logger.Sync()
-			s.logger.Info("Method not allowed",
-				zap.Int("status", http.StatusMethodNotAllowed),
-				zap.String("path", r.URL.Path))
-
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
-		defer s.logger.Sync()
-		s.logger.Info("IT WORKS!",
-			zap.Int("status", http.StatusOK),
-			zap.String("path", r.URL.Path))
 		w.WriteHeader(http.StatusOK)
 	}
 }
@@ -43,11 +32,6 @@ func (s *Server) CatchAllHandler() http.HandlerFunc {
 func (s *Server) RPCCallHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
-			defer s.logger.Sync()
-			s.logger.Info("Method not allowed",
-				zap.Int("status", http.StatusMethodNotAllowed),
-				zap.String("path", r.URL.Path))
-
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
@@ -56,9 +40,6 @@ func (s *Server) RPCCallHandler() http.HandlerFunc {
 		// example.com/v1/svc/method?version=v1
 		parts := strings.Split(r.URL.Path, "/")
 		if len(parts) != 4 {
-			s.logger.Info("Not found",
-				zap.Int("status", http.StatusNotFound),
-				zap.String("path", r.URL.Path))
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}

@@ -45,3 +45,10 @@ func TestServer_withAccessToken(t *testing.T) {
 		})
 	}
 }
+
+func TestServer_withLog(t *testing.T) {
+	server := New("foo", log.NewDiscard())
+	rr := httptest.NewRecorder()
+	handlerF := server.withLog(func(w http.ResponseWriter, r *http.Request) {})
+	handlerF(rr, httptest.NewRequest("GET", "/", nil))
+}
