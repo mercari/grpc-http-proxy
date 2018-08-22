@@ -1,33 +1,23 @@
 package http
 
 import (
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 )
 
 func TestServer_withAccessToken(t *testing.T) {
-	type response struct {
-		Status int    `json:"status"`
-		Msg    string `json:"msg"`
-	}
 	cases := []struct {
 		name        string
 		status      int
 		contentType string
-		r           response
 		token       string
 	}{
 		{
 			name:        "unauthorized",
 			status:      http.StatusUnauthorized,
 			contentType: "application/json",
-			r: response{
-				Status: http.StatusUnauthorized,
-				Msg:    "Unauthorized",
-			},
-			token: "foo",
+			token:       "foo",
 		},
 	}
 
@@ -45,17 +35,6 @@ func TestServer_withAccessToken(t *testing.T) {
 			}
 			contentType := rr.Result().Header["Content-Type"][0]
 			if got, want := contentType, tc.contentType; got != want {
-				t.Fatalf("got %s, want %s", got, want)
-			}
-			r := response{}
-			err := json.Unmarshal(rr.Body.Bytes(), &r)
-			if err != nil {
-				t.Fatal(err.Error())
-			}
-			if got, want := r.Status, tc.status; got != want {
-				t.Fatalf("got %d, want %d", got, want)
-			}
-			if got, want := r.Msg, tc.r.Msg; got != want {
 				t.Fatalf("got %s, want %s", got, want)
 			}
 		})
