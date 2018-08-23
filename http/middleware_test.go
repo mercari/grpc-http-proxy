@@ -8,7 +8,7 @@ import (
 	"github.com/mercari/grpc-http-proxy/log"
 )
 
-func TestServer_withAccessToken(t *testing.T) {
+func TestServer_withAccessTokenInvalidToken(t *testing.T) {
 	cases := []struct {
 		name          string
 		status        int
