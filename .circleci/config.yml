@@ -11,6 +11,11 @@ jobs:
     steps:
     - checkout
     - run:
+        name: set credentials with ${GITHUB_TOKEN} from CI's context
+        command: |
+          echo "machine github.com login ${GITHUB_TOKEN}" > ~/.netrc
+          if [ -f ~/.gitconfig ]; then rm ~/.gitconfig; fi
+    - run:
         name: Install dependencies and vendor
         command: |
           go get -u github.com/golang/dep/cmd/dep
@@ -31,9 +36,14 @@ jobs:
     steps:
     - checkout
     - run:
-        name: Install dpendency tools and vendor
+        name: set credentials with ${GITHUB_TOKEN} from CI's context
         command: |
-          make dep
+          echo "machine github.com login ${GITHUB_TOKEN}" > ~/.netrc
+          if [ -f ~/.gitconfig ]; then rm ~/.gitconfig; fi
+    - run:
+        name: Install dependencies and vendor
+        command: |
+          go get -u github.com/golang/dep/cmd/dep
           dep ensure
     - run:
         name: Run lint
@@ -43,5 +53,7 @@ workflows:
   version: 2
   build-workflow:
     jobs:
-    - build
-    - lint
+    - build:
+        context: org-global
+    - lint:
+        context: org-global
