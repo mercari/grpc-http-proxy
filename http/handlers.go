@@ -56,7 +56,6 @@ func (s *Server) RPCCallHandler() http.HandlerFunc {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(resp)
-		defer s.logger.Sync()
 		/* TODO(tomoyat1) emit logs based on results */
 
 		w.WriteHeader(http.StatusOK)
