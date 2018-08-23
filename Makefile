@@ -14,8 +14,8 @@ test:
 	@go test -v -race ./...
 
 .PHONY: coverage
-coverage: devel-deps
-	goverage -v -covermode=atomic -coverprofile=coverage.txt $(PACKAGES)
+coverage:
+	@go test -race -coverpkg=./... -coverprofile=coverage.txt ./...
 
 .PHONY: reviewdog
 reviewdog: devel-deps
