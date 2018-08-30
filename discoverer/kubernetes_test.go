@@ -142,14 +142,6 @@ func TestServiceAdded(t *testing.T) {
 			t.Fatal(err)
 		}
 		waitForService(f.client, fooV2.Namespace, fooV2.Name)
-		// for debugging
-		// TODO(tomoyat1) remove updateCh from controller code, unless packages are split
-		go func() {
-			for {
-				u := <-k.updateCh
-				t.Logf("event: %v", u)
-			}
-		}()
 		time.Sleep(1 * time.Second)
 		if got, want := k.records.m, m; !reflect.DeepEqual(got, want) {
 			t.Fatalf("got %v, want %v", got, want)
@@ -213,14 +205,6 @@ func TestServiceAdded(t *testing.T) {
 			t.Fatal(err)
 		}
 		waitForService(f.client, fooV2.Namespace, fooV2.Name)
-		// for debugging
-		// TODO(tomoyat1) remove updateCh from controller code, unless packages are split
-		go func() {
-			for {
-				u := <-k.updateCh
-				t.Logf("event: %v", u)
-			}
-		}()
 		time.Sleep(1 * time.Second)
 		if got, want := k.records.m, m; !reflect.DeepEqual(got, want) {
 			t.Fatalf("got %v, want %v", got, want)
@@ -265,14 +249,6 @@ func TestServiceDeleted(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		// for debugging
-		// TODO(tomoyat1) remove updateCh from controller code, unless packages are split
-		go func() {
-			for {
-				u := <-k.updateCh
-				t.Logf("event: %v", u)
-			}
-		}()
 		time.Sleep(1 * time.Second)
 		if got, want := k.records.m, m; !reflect.DeepEqual(got, want) {
 			t.Fatalf("got %v, want %v", got, want)
@@ -343,14 +319,6 @@ func TestServiceDeleted(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		// for debugging
-		// TODO(tomoyat1) remove updateCh from controller code, unless packages are split
-		go func() {
-			for {
-				u := <-k.updateCh
-				t.Logf("event: %v", u)
-			}
-		}()
 		time.Sleep(1 * time.Second)
 		if got, want := k.records.m, m; !reflect.DeepEqual(got, want) {
 			t.Fatalf("got %v, want %v", got, want)
@@ -404,15 +372,6 @@ func TestServiceUpdated(t *testing.T) {
 			t.Fatal(err)
 		}
 		waitForService(f.client, fooSvc.Namespace, fooSvc.Name)
-
-		// for debugging
-		// TODO(tomoyat1) remove updateCh from controller code, unless packages are split
-		go func() {
-			for {
-				u := <-k.updateCh
-				t.Logf("event: %v", u)
-			}
-		}()
 		time.Sleep(1 * time.Second)
 		if got, want := k.records.m, m; !reflect.DeepEqual(got, want) {
 			t.Fatalf("got %v, want %v", got, want)
@@ -464,15 +423,6 @@ func TestServiceUpdated(t *testing.T) {
 			t.Fatal(err)
 		}
 		waitForService(f.client, fooSvc.Namespace, fooSvc.Name)
-
-		// for debugging
-		// TODO(tomoyat1) remove updateCh from controller code, unless packages are split
-		go func() {
-			for {
-				u := <-k.updateCh
-				t.Logf("event: %v", u)
-			}
-		}()
 		time.Sleep(1 * time.Second)
 		if got, want := k.records.m, m; !reflect.DeepEqual(got, want) {
 			t.Fatalf("got %v, want %v", got, want)
@@ -549,15 +499,6 @@ func TestServiceUpdated(t *testing.T) {
 			t.Fatal(err)
 		}
 		waitForService(f.client, fooV2.Namespace, fooV2.Name)
-
-		// for debugging
-		// TODO(tomoyat1) remove updateCh from controller code, unless packages are split
-		go func() {
-			for {
-				u := <-k.updateCh
-				t.Logf("event: %v", u)
-			}
-		}()
 		time.Sleep(1 * time.Second)
 		if got, want := k.records.m, m; !reflect.DeepEqual(got, want) {
 			t.Fatalf("got %v, want %v", got, want)

@@ -33,7 +33,6 @@ type Kubernetes struct {
 	namespace string
 	lister    corelisters.ServiceLister
 	*WorkQueue
-	updateCh chan Event
 }
 
 // NewKubernetes creates a new Kubernetes Discoverer
@@ -53,7 +52,6 @@ func NewKubernetes(
 		records:   NewRecords(),
 		logger:    l,
 		WorkQueue: NewWorkQueue(),
-		updateCh:  make(chan Event),
 		namespace: namespace,
 	}
 	serviceInformer := infFactory.Core().V1().Services()
@@ -64,10 +62,6 @@ func NewKubernetes(
 			svc, ok := obj.(*core.Service)
 			if !ok {
 				return
-			}
-			k.updateCh <- Event{
-				EventType: CreateEvent,
-				Meta:      &svc.ObjectMeta,
 			}
 			k.enqueue(Event{
 				EventType: CreateEvent,
@@ -80,10 +74,6 @@ func NewKubernetes(
 			if !ok {
 				return
 			}
-			k.updateCh <- Event{
-				EventType: DeleteEvent,
-				Meta:      &svc.ObjectMeta,
-			}
 			k.enqueue(Event{
 				EventType: DeleteEvent,
 				Meta:      &svc.ObjectMeta,
@@ -94,10 +84,6 @@ func NewKubernetes(
 			newSvc, ok := newObj.(*core.Service)
 			if !ok {
 				return
-			}
-			k.updateCh <- Event{
-				EventType: UpdateEvent,
-				Meta:      &newSvc.ObjectMeta,
 			}
 			k.enqueue(Event{
 				EventType: UpdateEvent,
