@@ -116,6 +116,20 @@ func TestRecords_GetRecord(t *testing.T) {
 			url:     nil,
 			err:     serviceNotFound("c"),
 		},
+		{
+			name:    "service undecidable (unversioned)",
+			service: "d",
+			version: "",
+			url:     nil,
+			err:     versionUndecidable("d"),
+		},
+		{
+			name:    "service undecidable (versioned)",
+			service: "e",
+			version: "",
+			url:     nil,
+			err:     versionUndecidable("e"),
+		},
 	}
 
 	r := records{
@@ -134,6 +148,18 @@ func TestRecords_GetRecord(t *testing.T) {
 				"v1": entry{
 					true,
 					parseUrl("b.v1", t),
+				},
+			},
+			"d": {
+				"": entry{
+					false,
+					nil,
+				},
+			},
+			"e": {
+				"v1": entry{
+					false,
+					nil,
 				},
 			},
 		},

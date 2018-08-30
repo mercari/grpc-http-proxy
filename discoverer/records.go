@@ -103,8 +103,11 @@ func (r records) GetRecord(svc, version string) (proxy.ServiceURL, error) {
 		if len(vs) != 1 {
 			return nil, versionNotSpecified(svc)
 		}
-		for _, u := range vs {
-			return u.url, nil // this returns the first (and only) ServiceURL
+		for _, e := range vs {
+			if !e.decidable {
+				return nil, versionUndecidable(svc)
+			}
+			return e.url, nil // this returns the first (and only) ServiceURL
 		}
 	}
 	e, ok := vs[version]
