@@ -143,6 +143,8 @@ func TestServiceAdded(t *testing.T) {
 		}
 		waitForService(f.client, fooV2.Namespace, fooV2.Name)
 		time.Sleep(1 * time.Second)
+		k.records.mutex.RLock()
+		defer k.records.mutex.RUnlock()
 		if got, want := k.records.m, m; !reflect.DeepEqual(got, want) {
 			t.Fatalf("got %v, want %v", got, want)
 		}
@@ -206,6 +208,8 @@ func TestServiceAdded(t *testing.T) {
 		}
 		waitForService(f.client, fooV2.Namespace, fooV2.Name)
 		time.Sleep(1 * time.Second)
+		k.records.mutex.RLock()
+		defer k.records.mutex.RUnlock()
 		if got, want := k.records.m, m; !reflect.DeepEqual(got, want) {
 			t.Fatalf("got %v, want %v", got, want)
 		}
@@ -250,6 +254,8 @@ func TestServiceDeleted(t *testing.T) {
 			t.Fatal(err)
 		}
 		time.Sleep(1 * time.Second)
+		k.records.mutex.RLock()
+		defer k.records.mutex.RUnlock()
 		if got, want := k.records.m, m; !reflect.DeepEqual(got, want) {
 			t.Fatalf("got %v, want %v", got, want)
 		}
@@ -320,6 +326,8 @@ func TestServiceDeleted(t *testing.T) {
 			t.Fatal(err)
 		}
 		time.Sleep(1 * time.Second)
+		k.records.mutex.RLock()
+		defer k.records.mutex.RUnlock()
 		if got, want := k.records.m, m; !reflect.DeepEqual(got, want) {
 			t.Fatalf("got %v, want %v", got, want)
 		}
@@ -373,6 +381,8 @@ func TestServiceUpdated(t *testing.T) {
 		}
 		waitForService(f.client, fooSvc.Namespace, fooSvc.Name)
 		time.Sleep(1 * time.Second)
+		k.records.mutex.RLock()
+		defer k.records.mutex.RUnlock()
 		if got, want := k.records.m, m; !reflect.DeepEqual(got, want) {
 			t.Fatalf("got %v, want %v", got, want)
 		}
@@ -424,6 +434,8 @@ func TestServiceUpdated(t *testing.T) {
 		}
 		waitForService(f.client, fooSvc.Namespace, fooSvc.Name)
 		time.Sleep(1 * time.Second)
+		k.records.mutex.RLock()
+		defer k.records.mutex.RUnlock()
 		if got, want := k.records.m, m; !reflect.DeepEqual(got, want) {
 			t.Fatalf("got %v, want %v", got, want)
 		}
@@ -500,6 +512,8 @@ func TestServiceUpdated(t *testing.T) {
 		}
 		waitForService(f.client, fooV2.Namespace, fooV2.Name)
 		time.Sleep(1 * time.Second)
+		k.records.mutex.RLock()
+		defer k.records.mutex.RUnlock()
 		if got, want := k.records.m, m; !reflect.DeepEqual(got, want) {
 			t.Fatalf("got %v, want %v", got, want)
 		}
