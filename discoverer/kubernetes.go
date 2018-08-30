@@ -9,7 +9,6 @@ import (
 	"go.uber.org/zap"
 	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/informers"
 	clientset "k8s.io/client-go/kubernetes"
@@ -129,7 +128,7 @@ func (k *Kubernetes) Run(stopCh <-chan struct{}) {
 	if !cache.WaitForCacheSync(stopCh,
 		k.informer.HasSynced,
 	) {
-		runtime.HandleError(fmt.Errorf("timed out waiting for caches to sync"))
+		k.logger.Error("timed out waiting for caches to sync")
 	}
 	go wait.Until(k.runWorker, time.Second, stopCh)
 }
