@@ -22,7 +22,7 @@ jobs:
         name: Install dependencies and vendor
         command: |
           go get -u github.com/golang/dep/cmd/dep
-          dep ensure
+          make dep
     - run:
         name: Run test
         command: |
@@ -45,7 +45,7 @@ jobs:
         name: Install dependencies and vendor
         command: |
           go get -u github.com/golang/dep/cmd/dep
-          dep ensure
+          make dep
     - run:
         name: Run lint
         command: |
