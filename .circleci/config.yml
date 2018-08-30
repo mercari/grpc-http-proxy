@@ -3,11 +3,14 @@ version: 2
 defaults: &defaults
   working_directory: /go/src/github.com/mercari/grpc-http-proxy
 
+golang: &golang
+  <<: *defaults
+  docker:
+    - image: golang:1.11-stretch
+
 jobs:
   build:
-    <<: *defaults
-    docker:
-    - image: golang:1.10-stretch
+    <<: *golang
     steps:
     - checkout
     - run:
@@ -30,9 +33,7 @@ jobs:
           make coverage
           bash <(curl -s https://codecov.io/bash)
   lint:
-    <<: *defaults
-    docker:
-    - image: golang:1.10-stretch
+    <<: *golang
     steps:
     - checkout
     - run:
