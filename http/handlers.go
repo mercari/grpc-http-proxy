@@ -43,6 +43,7 @@ func (s *Server) RPCCallHandler() http.HandlerFunc {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
+		// todo(tomoyat1) extract metadata from http request header
 		resp := placeholderResponse{
 			Service: parts[2],
 			Method:  parts[3],
