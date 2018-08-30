@@ -1,3 +1,5 @@
 vendor/
+coverage.txt
 
 .idea/
+
