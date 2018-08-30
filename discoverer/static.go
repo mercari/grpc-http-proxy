@@ -6,13 +6,15 @@ import (
 	"github.com/mercari/grpc-http-proxy"
 )
 
-type Local struct {
+// Static provides service discovery with a static mapping of services and their backend FQDNs
+type Static struct {
 	*records
 	logger *zap.Logger
 }
 
-func NewLocal(l *zap.Logger, mappingFile string) Discoverer {
-	local := &Local{
+// NewStatic creates a new Static
+func NewStatic(l *zap.Logger, mappingFile string) Discoverer {
+	local := &Static{
 		logger: l,
 	}
 	r, err := NewRecordsFromYAML(mappingFile)
@@ -26,7 +28,8 @@ func NewLocal(l *zap.Logger, mappingFile string) Discoverer {
 	return local
 }
 
-func (l *Local) Resolve(svc, version string) (proxy.ServiceURL, error) {
+// Resolve resolves the FQDN for a backend providing the gRPC service specified
+func (l *Static) Resolve(svc, version string) (proxy.ServiceURL, error) {
 	r, err := l.records.GetRecord(svc, version)
 	if err != nil {
 		l.logger.Error("failed to resolve service",

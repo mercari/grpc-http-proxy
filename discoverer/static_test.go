@@ -9,7 +9,7 @@ import (
 	"github.com/mercari/grpc-http-proxy/log"
 )
 
-func TestNewLocal(t *testing.T) {
+func TestNewStatic(t *testing.T) {
 	cases := []struct {
 		name     string
 		yamlFile string
@@ -22,17 +22,17 @@ func TestNewLocal(t *testing.T) {
 				"a": {
 					"v1": entry{
 						decidable: true,
-						url:       parseUrl("a.v1", t),
+						url:       parseURL("a.v1", t),
 					},
 					"v2": entry{
 						decidable: true,
-						url:       parseUrl("a.v2", t),
+						url:       parseURL("a.v2", t),
 					},
 				},
 				"b": {
 					"v1": entry{
 						decidable: true,
-						url:       parseUrl("b.v1", t),
+						url:       parseURL("b.v1", t),
 					},
 				},
 			},
@@ -51,8 +51,8 @@ func TestNewLocal(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			logger := log.NewDiscard()
-			local := NewLocal(logger, tc.yamlFile)
-			if got, want := local.(*Local).m, tc.expected; !reflect.DeepEqual(got, want) {
+			local := NewStatic(logger, tc.yamlFile)
+			if got, want := local.(*Static).m, tc.expected; !reflect.DeepEqual(got, want) {
 				t.Fatalf("got %v, want %v", got, want)
 			}
 		})
@@ -60,7 +60,7 @@ func TestNewLocal(t *testing.T) {
 
 }
 
-func TestLocal_Resolve(t *testing.T) {
+func TestStatic_Resolve(t *testing.T) {
 	cases := []struct {
 		name    string
 		service string
@@ -72,7 +72,7 @@ func TestLocal_Resolve(t *testing.T) {
 			name:    "resolved",
 			service: "a",
 			version: "v1",
-			url:     parseUrl("a.v1", t),
+			url:     parseURL("a.v1", t),
 			err:     nil,
 		},
 		{
@@ -88,14 +88,14 @@ func TestLocal_Resolve(t *testing.T) {
 			"a": {
 				"v1": entry{
 					decidable: true,
-					url:       parseUrl("a.v1", t),
+					url:       parseURL("a.v1", t),
 				},
 			},
 		},
 		mutex: sync.RWMutex{},
 	}
 	logger := log.NewDiscard()
-	local := &Local{
+	local := &Static{
 		records: &r,
 		logger:  logger,
 	}

@@ -83,11 +83,11 @@ func TestServiceAdded(t *testing.T) {
 			"Echo": {
 				"v1": entry{
 					decidable: true,
-					url:       parseUrl("foo-service.bar-ns.svc.cluster.local", t),
+					url:       parseURL("foo-service.bar-ns.svc.cluster.local", t),
 				},
 				"v2": entry{
 					decidable: true,
-					url:       parseUrl("foo-service-v2.bar-ns.svc.cluster.local", t),
+					url:       parseURL("foo-service-v2.bar-ns.svc.cluster.local", t),
 				},
 			},
 		}
@@ -266,7 +266,7 @@ func TestServiceDeleted(t *testing.T) {
 			"Echo": {
 				"": entry{
 					decidable: true,
-					url:       parseUrl("foo-service-v2.bar-ns.svc.cluster.local", t),
+					url:       parseURL("foo-service-v2.bar-ns.svc.cluster.local", t),
 				},
 			},
 		}
@@ -340,7 +340,7 @@ func TestServiceUpdated(t *testing.T) {
 			"Ping": {
 				"v1": entry{
 					true,
-					parseUrl("foo-service.bar-ns.svc.cluster.local", t),
+					parseURL("foo-service.bar-ns.svc.cluster.local", t),
 				},
 			},
 		}
@@ -393,7 +393,7 @@ func TestServiceUpdated(t *testing.T) {
 			"Echo": {
 				"v2": entry{
 					true,
-					parseUrl("foo-service.bar-ns.svc.cluster.local", t),
+					parseURL("foo-service.bar-ns.svc.cluster.local", t),
 				},
 			},
 		}
@@ -446,11 +446,11 @@ func TestServiceUpdated(t *testing.T) {
 			"Echo": {
 				"": entry{
 					true,
-					parseUrl("foo-service.bar-ns.svc.cluster.local", t),
+					parseURL("foo-service.bar-ns.svc.cluster.local", t),
 				},
 				"v2": entry{
 					true,
-					parseUrl("foo-service-v2.bar-ns.svc.cluster.local", t),
+					parseURL("foo-service-v2.bar-ns.svc.cluster.local", t),
 				},
 			},
 		}
