@@ -64,7 +64,7 @@ func NewKubernetes(
 				return
 			}
 			k.enqueue(Event{
-				EventType: CreateEvent,
+				EventType: createEvent,
 				Meta:      &svc.ObjectMeta,
 			})
 			return
@@ -75,7 +75,7 @@ func NewKubernetes(
 				return
 			}
 			k.enqueue(Event{
-				EventType: DeleteEvent,
+				EventType: deleteEvent,
 				Meta:      &svc.ObjectMeta,
 			})
 			return
@@ -86,7 +86,7 @@ func NewKubernetes(
 				return
 			}
 			k.enqueue(Event{
-				EventType: UpdateEvent,
+				EventType: updateEvent,
 				Meta:      &newSvc.ObjectMeta,
 			})
 			return
@@ -97,6 +97,7 @@ func NewKubernetes(
 	return k
 }
 
+// Resolve resolves the FQDN for a backend providing the gRPC service specified
 func (k *Kubernetes) Resolve(svc, version string) (proxy.ServiceURL, error) {
 	r, err := k.records.GetRecord(svc, version)
 	if err != nil {
@@ -109,6 +110,7 @@ func (k *Kubernetes) Resolve(svc, version string) (proxy.ServiceURL, error) {
 	return r, nil
 }
 
+// Run starts the Kubernetes controller
 func (k *Kubernetes) Run(stopCh <-chan struct{}) {
 	go k.informer.Run(stopCh)
 	if !cache.WaitForCacheSync(stopCh,
@@ -194,9 +196,9 @@ type Event struct {
 type EventType string
 
 const (
-	CreateEvent EventType = "CREATE"
-	UpdateEvent EventType = "UPDATE"
-	DeleteEvent EventType = "DELETE"
+	createEvent EventType = "CREATE"
+	updateEvent EventType = "UPDATE"
+	deleteEvent EventType = "DELETE"
 )
 
 // WorkQueue has a queue of Events in need of processing
