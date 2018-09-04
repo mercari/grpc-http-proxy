@@ -1,4 +1,4 @@
-package reflection
+package backend
 
 import (
 	"context"
@@ -53,7 +53,6 @@ func NewStub(c *ClientConn) *Stub {
 
 // InvokeRPC calls the backend gRPC method with the message provided in JSON.
 // This performs reflection against the backend every time it is called.
-// TODO(tomoyat1) split this function up
 func (s *Stub) InvokeRPC(
 	ctx context.Context,
 	method *MethodDescriptor,

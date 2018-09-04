@@ -1,4 +1,4 @@
-package reflection
+package backend
 
 import (
 	"context"
@@ -14,18 +14,18 @@ import (
 	"github.com/mercari/grpc-http-proxy/errors"
 )
 
-type Client struct {
+type ReflectionClient struct {
 	cc *grpc.ClientConn
 }
 
-func NewReflectionClient(c *ClientConn) *Client {
-	return &Client{
+func NewReflectionClient(c *ClientConn) *ReflectionClient {
+	return &ReflectionClient{
 		cc: c.cc,
 	}
 }
 
 // ResolveService gets the service descriptor from the service the client is connected to
-func (c *Client) ResolveService(ctx context.Context, serviceName string) (*ServiceDescriptor, error) {
+func (c *ReflectionClient) ResolveService(ctx context.Context, serviceName string) (*ServiceDescriptor, error) {
 	reflectClient := grpcreflect.NewClient(ctx, rpb.NewServerReflectionClient(c.cc))
 	d, err := reflectClient.ResolveService(serviceName)
 	if err != nil {
