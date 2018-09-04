@@ -42,7 +42,7 @@ func TestReflectionClient_ResolveService(t *testing.T) {
 			descIsNil:   true,
 			error: &errors.Error{
 				Code:    errors.ServiceNotFound,
-				Message: fmt.Sprintf("service %s was not found", "not.found.NoService"),
+				Message: fmt.Sprintf("service %s was not found upstream", "not.found.NoService"),
 			},
 		},
 	}

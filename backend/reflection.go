@@ -31,7 +31,7 @@ func (c *reflectionClient) resolveService(ctx context.Context, serviceName strin
 	if err != nil {
 		return nil, &errors.Error{
 			Code:    errors.ServiceNotFound,
-			Message: fmt.Sprintf("service %s was not found", serviceName),
+			Message: fmt.Sprintf("service %s was not found upstream", serviceName),
 		}
 	}
 	return &serviceDescriptor{
