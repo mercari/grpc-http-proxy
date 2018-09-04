@@ -95,6 +95,9 @@ func (c *Client) loadDescriptors(ctx context.Context, serviceName, methodName st
 	}
 	c.resolveService(ctx, serviceName)
 	c.findMethodByName(methodName)
+	if c.err != nil {
+		return
+	}
 	c.InputMessage = c.methodDescriptor.getInputType().newMessage()
 	c.OutputMessage = c.methodDescriptor.getOutputType().newMessage()
 	return
