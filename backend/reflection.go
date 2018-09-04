@@ -14,18 +14,18 @@ import (
 	"github.com/mercari/grpc-http-proxy/errors"
 )
 
-type ReflectionClient struct {
+type reflectionClient struct {
 	cc *grpc.ClientConn
 }
 
-func NewReflectionClient(c *ClientConn) *ReflectionClient {
-	return &ReflectionClient{
+func newReflectionClient(c *clientConn) *reflectionClient {
+	return &reflectionClient{
 		cc: c.cc,
 	}
 }
 
-// ResolveService gets the service descriptor from the service the client is connected to
-func (c *ReflectionClient) ResolveService(ctx context.Context, serviceName string) (*ServiceDescriptor, error) {
+// resolveService gets the service descriptor from the service the client is connected to
+func (c *reflectionClient) resolveService(ctx context.Context, serviceName string) (*serviceDescriptor, error) {
 	reflectClient := grpcreflect.NewClient(ctx, rpb.NewServerReflectionClient(c.cc))
 	d, err := reflectClient.ResolveService(serviceName)
 	if err != nil {
@@ -34,28 +34,28 @@ func (c *ReflectionClient) ResolveService(ctx context.Context, serviceName strin
 			Message: fmt.Sprintf("service %s was not found", serviceName),
 		}
 	}
-	return &ServiceDescriptor{
+	return &serviceDescriptor{
 		desc: d,
 	}, nil
 }
 
-// ServiceDescriptor represents a service type
-type ServiceDescriptor struct {
+// serviceDescriptor represents a service type
+type serviceDescriptor struct {
 	desc *desc.ServiceDescriptor
 }
 
-func serviceDescriptorFromFileDescriptor(fd *desc.FileDescriptor, service string) *ServiceDescriptor {
+func serviceDescriptorFromFileDescriptor(fd *desc.FileDescriptor, service string) *serviceDescriptor {
 	d := fd.FindService(service)
 	if d == nil {
 		return nil
 	}
-	return &ServiceDescriptor{
+	return &serviceDescriptor{
 		desc: d,
 	}
 }
 
-// FindMethodByName finds the method descriptor with the name
-func (s *ServiceDescriptor) FindMethodByName(name string) (*MethodDescriptor, error) {
+// findMethodByName finds the method descriptor with the name
+func (s *serviceDescriptor) findMethodByName(name string) (*methodDescriptor, error) {
 	d := s.desc.FindMethodByName(name)
 	if d == nil {
 		return nil, &errors.Error{
@@ -63,48 +63,48 @@ func (s *ServiceDescriptor) FindMethodByName(name string) (*MethodDescriptor, er
 			Message: fmt.Sprintf("the method %s was not found", name),
 		}
 	}
-	return &MethodDescriptor{
+	return &methodDescriptor{
 		desc: d,
 	}, nil
 }
 
-// MethodDescriptor represents a method type
-type MethodDescriptor struct {
+// methodDescriptor represents a method type
+type methodDescriptor struct {
 	desc *desc.MethodDescriptor
 }
 
-// GetInputType gets the message descriptor for the input type for the method
-func (m *MethodDescriptor) GetInputType() *MessageDescriptor {
-	return &MessageDescriptor{
+// getInputType gets the message descriptor for the input type for the method
+func (m *methodDescriptor) getInputType() *messageDescriptor {
+	return &messageDescriptor{
 		desc: m.desc.GetInputType(),
 	}
 }
 
-// GetInputType gets the message descriptor for the output type for the method
-func (m *MethodDescriptor) GetOutputType() *MessageDescriptor {
-	return &MessageDescriptor{
+// getInputType gets the message descriptor for the output type for the method
+func (m *methodDescriptor) getOutputType() *messageDescriptor {
+	return &messageDescriptor{
 		desc: m.desc.GetOutputType(),
 	}
 }
 
-// MessageDescriptor represents a message type
-type MessageDescriptor struct {
+// messageDescriptor represents a message type
+type messageDescriptor struct {
 	desc *desc.MessageDescriptor
 }
 
-// NewMessage creates a new Message from the receiver
-func (m *MessageDescriptor) NewMessage() *Message {
-	return &Message{
+// newMessage creates a new message from the receiver
+func (m *messageDescriptor) newMessage() *message {
+	return &message{
 		desc: dynamic.NewMessage(m.desc),
 	}
 }
 
-// Message is an message value
-type Message struct {
+// message is an message value
+type message struct {
 	desc *dynamic.Message
 }
 
-func (m *Message) MarshalJSON() ([]byte, error) {
+func (m *message) marshalJSON() ([]byte, error) {
 	b, err := m.desc.MarshalJSON()
 	if err != nil {
 		return nil, &errors.Error{
@@ -115,7 +115,7 @@ func (m *Message) MarshalJSON() ([]byte, error) {
 	return b, nil
 }
 
-func (m *Message) UnmarshalJSON(b []byte) error {
+func (m *message) unmarshalJSON(b []byte) error {
 	err := m.desc.UnmarshalJSON(b)
 	if err != nil {
 		return &errors.Error{
@@ -126,6 +126,6 @@ func (m *Message) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func (m *Message) convertFrom(target proto.Message) error {
+func (m *message) convertFrom(target proto.Message) error {
 	return m.desc.ConvertFrom(target)
 }

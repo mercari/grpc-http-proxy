@@ -58,12 +58,12 @@ func TestReflectionClient_ResolveService(t *testing.T) {
 	time.Sleep(time.Second)
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			cc, err := NewClientConn(context.Background(), parseURL(t, "localhost:5000"))
+			cc, err := newClientConn(context.Background(), parseURL(t, "localhost:5000"))
 			if err != nil {
 				t.Fatal(err.Error())
 			}
-			c := NewReflectionClient(cc)
-			serviceDesc, err := c.ResolveService(context.Background(), tc.serviceName)
+			c := newReflectionClient(cc)
+			serviceDesc, err := c.resolveService(context.Background(), tc.serviceName)
 			if got, want := serviceDesc == nil, tc.descIsNil; got != want {
 				t.Fatalf("got %t, want %t", got, want)
 			}
@@ -113,7 +113,7 @@ func TestServiceDescriptor_FindMethodByName(t *testing.T) {
 			if serviceDesc == nil {
 				t.Fatalf("service descriptor is nil")
 			}
-			methodDesc, err := serviceDesc.FindMethodByName(tc.methodName)
+			methodDesc, err := serviceDesc.findMethodByName(tc.methodName)
 			if got, want := methodDesc == nil, tc.descIsNil; got != want {
 				t.Fatalf("got %t, want %t", got, want)
 			}
@@ -150,11 +150,11 @@ func TestServiceDescriptor_GetInputType(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			fileDesc := newFileDescriptor(t, file)
 			serviceDesc := serviceDescriptorFromFileDescriptor(fileDesc, serviceName)
-			methodDesc, err := serviceDesc.FindMethodByName(tc.methodName)
+			methodDesc, err := serviceDesc.findMethodByName(tc.methodName)
 			if err != nil {
 				t.Fatalf(err.Error())
 			}
-			inputMsgDesc := methodDesc.GetInputType()
+			inputMsgDesc := methodDesc.getInputType()
 			if got, want := inputMsgDesc == nil, tc.descIsNil; got != want {
 				t.Fatalf("got %t, want %t", got, want)
 			}
@@ -182,11 +182,11 @@ func TestServiceDescriptor_GetOutputType(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			fileDesc := newFileDescriptor(t, file)
 			serviceDesc := serviceDescriptorFromFileDescriptor(fileDesc, serviceName)
-			methodDesc, err := serviceDesc.FindMethodByName(tc.methodName)
+			methodDesc, err := serviceDesc.findMethodByName(tc.methodName)
 			if err != nil {
 				t.Fatalf(err.Error())
 			}
-			inputMsgDesc := methodDesc.GetOutputType()
+			inputMsgDesc := methodDesc.getOutputType()
 			if got, want := inputMsgDesc == nil, tc.descIsNil; got != want {
 				t.Fatalf("got %t, want %t", got, want)
 			}
@@ -203,12 +203,12 @@ func TestMessageDescriptor_NewMessage(t *testing.T) {
 	if serviceDesc == nil {
 		t.Fatal("service descriptor is nil")
 	}
-	methodDesc, err := serviceDesc.FindMethodByName(methodName)
+	methodDesc, err := serviceDesc.findMethodByName(methodName)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	inputMsgDesc := methodDesc.GetInputType()
-	inputMsg := inputMsgDesc.NewMessage()
+	inputMsgDesc := methodDesc.getInputType()
+	inputMsg := inputMsgDesc.newMessage()
 	if got, want := inputMsg == nil, false; got != want {
 		t.Fatalf("got %t, want %t", got, want)
 	}
@@ -237,11 +237,11 @@ func TestMessage_MarshalJSON(t *testing.T) {
 			if messageDesc == nil {
 				t.Fatal("message descriptor is nil")
 			}
-			message := Message{
+			message := message{
 				desc: dynamic.NewMessage(messageDesc),
 			}
 			message.desc.SetField(message.desc.FindFieldDescriptorByName("body"), []byte("hello"))
-			j, err := message.MarshalJSON()
+			j, err := message.marshalJSON()
 			if got, want := j, tc.json; !reflect.DeepEqual(got, want) {
 				t.Fatalf("got %v, want %v", got, want)
 			}
@@ -284,10 +284,10 @@ func TestMessage_UnmarshalJSON(t *testing.T) {
 			if messageDesc == nil {
 				t.Fatal("message descriptor is nil")
 			}
-			message := Message{
+			message := message{
 				desc: dynamic.NewMessage(messageDesc),
 			}
-			err := message.UnmarshalJSON(tc.json)
+			err := message.unmarshalJSON(tc.json)
 
 			expectedMessage := dynamic.NewMessage(messageDesc)
 			expectedMessage.SetField(expectedMessage.FindFieldDescriptorByName("body"), []byte("hello!"))

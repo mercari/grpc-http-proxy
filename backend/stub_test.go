@@ -76,19 +76,19 @@ func TestStub_InvokeRPC(t *testing.T) {
 			if serviceDesc == nil {
 				t.Fatal("service descriptor is nil")
 			}
-			methodDesc, err := serviceDesc.FindMethodByName(tc.methodName)
+			methodDesc, err := serviceDesc.findMethodByName(tc.methodName)
 			if err != nil {
 				t.Fatal(err.Error())
 			}
-			inputMsgDesc := methodDesc.GetInputType()
-			inputMsg := inputMsgDesc.NewMessage()
+			inputMsgDesc := methodDesc.getInputType()
+			inputMsg := inputMsgDesc.newMessage()
 			ctx := context.Background()
-			conn, err := NewClientConn(ctx, parseURL(t, target))
+			conn, err := newClientConn(ctx, parseURL(t, target))
 			if err != nil {
 				t.Fatal(err.Error())
 			}
-			stub := NewStub(conn)
-			outputMsg, err := stub.InvokeRPC(ctx, methodDesc, inputMsg, (*proxy.Metadata)(&map[string][]string{}))
+			stub := newStub(conn)
+			outputMsg, err := stub.invokeRPC(ctx, methodDesc, inputMsg, (*proxy.Metadata)(&map[string][]string{}))
 			if err != nil {
 				switch v := err.(type) {
 				case *errors.Error:

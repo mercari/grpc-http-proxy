@@ -15,15 +15,15 @@ import (
 	"github.com/mercari/grpc-http-proxy/errors"
 )
 
-// ClientConn is a connection to a backend, with the ability to perform reflection
-type ClientConn struct {
+// clientConn is a connection to a backend, with the ability to perform reflection
+type clientConn struct {
 	cc *grpc.ClientConn
 }
 
-// NewClientConn creates a new ClientConn
-func NewClientConn(
+// newClientConn creates a new clientConn
+func newClientConn(
 	ctx context.Context,
-	target *url.URL) (*ClientConn, error) {
+	target *url.URL) (*clientConn, error) {
 	cc, err := grpc.DialContext(ctx, target.String(), grpc.WithInsecure())
 	if err != nil {
 		return nil, &errors.Error{
@@ -31,33 +31,37 @@ func NewClientConn(
 			Message: fmt.Sprintf("failed to connect to backend %s", target),
 		}
 	}
-	return &ClientConn{
+	return &clientConn{
 		cc: cc,
 	}, nil
 }
 
-func (c *ClientConn) Target() string {
+func (c *clientConn) target() string {
 	return c.cc.Target()
 }
 
-type Stub struct {
+func (c *clientConn) close() error {
+	return c.cc.Close()
+}
+
+type stub struct {
 	stub grpcdynamic.Stub
 }
 
-func NewStub(c *ClientConn) *Stub {
-	stub := grpcdynamic.NewStub(c.cc)
-	return &Stub{
-		stub: stub,
+func newStub(c *clientConn) *stub {
+	s := grpcdynamic.NewStub(c.cc)
+	return &stub{
+		stub: s,
 	}
 }
 
-// InvokeRPC calls the backend gRPC method with the message provided in JSON.
+// invokeRPC calls the backend gRPC method with the message provided in JSON.
 // This performs reflection against the backend every time it is called.
-func (s *Stub) InvokeRPC(
+func (s *stub) invokeRPC(
 	ctx context.Context,
-	method *MethodDescriptor,
-	inputMessage *Message,
-	md *proxy.Metadata) (*Message, error) {
+	method *methodDescriptor,
+	inputMessage *message,
+	md *proxy.Metadata) (*message, error) {
 
 	o, err := s.stub.InvokeRpc(ctx, method.desc, inputMessage.desc, grpc.Header((*metadata.MD)(md)))
 	if err != nil {
@@ -69,13 +73,13 @@ func (s *Stub) InvokeRPC(
 			}
 		}
 
-		// When InvokeRPC returns an error, it should always be a gRPC error, so this should not panic
+		// When invokeRPC returns an error, it should always be a gRPC error, so this should not panic
 		return nil, &errors.GRPCError{
 			StatusCode: int(stat.Code()),
 			Message:    stat.Message(),
 		}
 	}
-	outputMsg := method.GetOutputType().NewMessage()
+	outputMsg := method.getOutputType().newMessage()
 	err = outputMsg.convertFrom(o)
 
 	if err != nil {
