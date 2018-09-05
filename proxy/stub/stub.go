@@ -54,7 +54,7 @@ func (s *stubImpl) InvokeRPC(
 	if err != nil {
 		stat := status.Convert(err)
 		if err != nil && stat.Code() == codes.Unavailable {
-			return nil, &errors.Error{
+			return nil, &errors.InternalError{
 				Code:    errors.UpstreamConnFailure,
 				Message: fmt.Sprintf("could not connect to backend"),
 			}
@@ -70,7 +70,7 @@ func (s *stubImpl) InvokeRPC(
 	err = outputMsg.ConvertFrom(o)
 
 	if err != nil {
-		return nil, &errors.Error{
+		return nil, &errors.InternalError{
 			Code:    errors.Unknown,
 			Message: "response from backend could not be converted internally; this is a bug",
 		}

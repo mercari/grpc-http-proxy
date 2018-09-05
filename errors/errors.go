@@ -3,11 +3,19 @@ package errors
 import (
 	"net/http"
 
+	"encoding/json"
 	"google.golang.org/grpc/codes"
+	"io"
 )
 
-// Error represents internal errors
-type Error struct {
+type Error interface {
+	error
+	HTTPStatusCode() int
+	WriteJSON(w io.Writer) error
+}
+
+// InternalError represents internal errors
+type InternalError struct {
 	Code
 	Message string
 	Err     error
@@ -35,7 +43,7 @@ const (
 	VersionUndecidable Code = 10
 )
 
-func (e *Error) Error() string {
+func (e *InternalError) Error() string {
 	switch e.Code {
 	case UpstreamConnFailure:
 		return "could not connect to backend gRPC service"
@@ -54,6 +62,38 @@ func (e *Error) Error() string {
 	default:
 		return "unknown failure"
 	}
+}
+
+func (e *InternalError) HTTPStatusCode() int {
+	switch e.Code {
+	case UpstreamConnFailure:
+		return http.StatusBadGateway
+	case ServiceUnresolvable:
+		return http.StatusNotFound
+	case ServiceNotFound:
+		return http.StatusInternalServerError
+	case MethodNotFound:
+		return http.StatusNotFound
+	case MessageTypeMismatch:
+		return http.StatusBadRequest
+	case VersionNotSpecified:
+		return http.StatusBadRequest
+	case VersionUndecidable:
+		return http.StatusBadRequest
+	default:
+		return http.StatusInternalServerError
+	}
+}
+
+func (e *InternalError) WriteJSON(w io.Writer) error {
+	type JsonSchema struct {
+		Status  int    `json:"status"`
+		Message string `json:"message"`
+	}
+	return json.NewEncoder(w).Encode(&JsonSchema{
+		Status:  e.HTTPStatusCode(),
+		Message: e.Message,
+	})
 }
 
 // GRPCError is an error returned by gRPC upstream

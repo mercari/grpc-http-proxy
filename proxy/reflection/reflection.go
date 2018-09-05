@@ -79,7 +79,7 @@ func (c *reflectionClient) resolveService(ctx context.Context,
 	serviceName string) (*ServiceDescriptor, error) {
 	d, err := c.grpcreflectClient.ResolveService(serviceName)
 	if err != nil {
-		return nil, &perrors.Error{
+		return nil, &perrors.InternalError{
 			Code:    perrors.ServiceNotFound,
 			Message: fmt.Sprintf("service %s was not found upstream", serviceName),
 		}
@@ -110,7 +110,7 @@ func ServiceDescriptorFromFileDescriptor(fd *desc.FileDescriptor, service string
 func (s *ServiceDescriptor) FindMethodByName(name string) (*MethodDescriptor, error) {
 	d := s.ServiceDescriptor.FindMethodByName(name)
 	if d == nil {
-		return nil, &perrors.Error{
+		return nil, &perrors.InternalError{
 			Code:    perrors.MethodNotFound,
 			Message: fmt.Sprintf("the method %s was not found", name),
 		}
@@ -175,7 +175,7 @@ type messageImpl struct {
 func (m *messageImpl) MarshalJSON() ([]byte, error) {
 	b, err := m.Message.MarshalJSON()
 	if err != nil {
-		return nil, &perrors.Error{
+		return nil, &perrors.InternalError{
 			Code:    perrors.Unknown,
 			Message: "could not marshal backend response into JSON",
 		}
@@ -186,7 +186,7 @@ func (m *messageImpl) MarshalJSON() ([]byte, error) {
 func (m *messageImpl) UnmarshalJSON(b []byte) error {
 	err := m.Message.UnmarshalJSON(b)
 	if err != nil {
-		return &perrors.Error{
+		return &perrors.InternalError{
 			Code:    perrors.MessageTypeMismatch,
 			Message: "input JSON does not match messageImpl type",
 		}

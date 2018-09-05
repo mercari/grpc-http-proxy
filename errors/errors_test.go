@@ -1,10 +1,13 @@
 package errors
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
-	"google.golang.org/grpc/codes"
 	"net/http"
 	"testing"
+
+	"google.golang.org/grpc/codes"
 )
 
 func TestError_Error(t *testing.T) {
@@ -43,7 +46,7 @@ func TestError_Error(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(fmt.Sprintf("%d", tc.Code), func(t *testing.T) {
-			err := &Error{
+			err := &InternalError{
 				Code: tc.Code,
 			}
 			if got, want := err.Error(), tc.msg; got != want {
@@ -146,5 +149,25 @@ func TestGRPCError_HTTPStatusCode(t *testing.T) {
 				t.Fatalf("got %d, want %d", got, want)
 			}
 		})
+	}
+}
+
+func TestInternalError_WriteJSON(t *testing.T) {
+	err := &InternalError{
+		Code:    Unknown,
+		Message: "test error",
+	}
+	expected := []byte(fmt.Sprintf("{\"status\":\"%d\",\"message\":\"%s\"}",
+		err.HTTPStatusCode(),
+		err.Message,
+	))
+
+	b := bytes.NewBuffer(make([]byte, 0, 128))
+	w := bufio.NewWriter(b)
+	if got, want := err.WriteJSON(w), error(nil); got != want {
+		t.Fatalf("err was not nil")
+	}
+	if got, want := b.Bytes(), expected; bytes.Equal(got, want) {
+		t.Fatalf("got %v, want %v", got, want)
 	}
 }

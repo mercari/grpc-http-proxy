@@ -113,7 +113,7 @@ func checkRecords(t *testing.T, k *Service, cases []testCase) {
 			t.Fatalf("got %v, want %v", got, want)
 		}
 		switch e := err.(type) {
-		case *errors.Error:
+		case *errors.InternalError:
 			if got, want := int(e.Code), tc.code; got != want {
 				t.Fatalf("got %d, want %d", got, want)
 			}

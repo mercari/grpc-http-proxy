@@ -73,8 +73,8 @@ func TestStub_InvokeRPC(t *testing.T) {
 			outputMsg, err := stub.InvokeRPC(ctx, invocation, (*metadata.Metadata)(&map[string][]string{}))
 			if err != nil {
 				switch v := err.(type) {
-				case *errors.Error:
-					expected := tc.error.(*errors.Error)
+				case *errors.InternalError:
+					expected := tc.error.(*errors.InternalError)
 					if got, want := v, expected; !reflect.DeepEqual(got, want) {
 						t.Fatalf("got %v, want %v", got, want)
 					}
