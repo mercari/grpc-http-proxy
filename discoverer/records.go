@@ -19,7 +19,7 @@ type records struct {
 	mutex sync.RWMutex
 }
 
-func serviceNotFound(svc string) *proxy.Error {
+func serviceUnresolvable(svc string) *proxy.Error {
 	return &proxy.Error{
 		Code:    proxy.ServiceUnresolvable,
 		Message: fmt.Sprintf("The gRPC service %s is unresolvable", svc),
@@ -69,7 +69,7 @@ func (r records) GetRecord(svc, version string) (proxy.ServiceURL, error) {
 	defer r.mutex.RUnlock()
 	vs, ok := r.m[svc]
 	if !ok {
-		return nil, serviceNotFound(svc)
+		return nil, serviceUnresolvable(svc)
 	}
 	if version == "" {
 		if len(vs) != 1 {

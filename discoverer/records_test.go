@@ -70,7 +70,7 @@ func TestRecords_GetRecord(t *testing.T) {
 			service: "c",
 			version: "",
 			url:     nil,
-			err:     serviceNotFound("c"),
+			err:     serviceUnresolvable("c"),
 		},
 		{
 			name:    "service undecidable (unversioned)",

@@ -223,11 +223,11 @@ func (k *Kubernetes) eventHandler(evt Event) {
 				// Record is missing, so add it
 				k.SetRecord(gRPCServiceName, version, u)
 				return
-			} else {
-				// recreate entire record table to prevent avoid cases
-				k.recreateRecordTable(evt)
-				return
 			}
+
+			// recreate entire record table to prevent avoid cases
+			k.recreateRecordTable(evt)
+			return
 		}
 
 		// gRPC service annotation was removed to the Service

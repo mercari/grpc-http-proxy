@@ -1,33 +1,36 @@
 package proxy
 
+// Error represents internal errors
 type Error struct {
 	Code
 	Message string
 	Err     error
 }
 
+// Code represents type of internal error
 type Code int
 
 const (
-	InvalidPath         Code = 0
-	MethodNotAllowed    Code = 1
-	BackendConnFailure  Code = 2
+	// BackendConnFailure represents failure to connect to the upstream gRPC service
+	BackendConnFailure Code = 2
+	// ServiceUnresolvable represents failure to resolve a gRPC service to its upstream FQDN
 	ServiceUnresolvable Code = 3
-	ServiceNotFound     Code = 4
-	MethodNotFound      Code = 5
+	// ServiceNotFound represents a missing gRPC service in an upstream, even though the service resolved to that upstream
+	ServiceNotFound Code = 4
+	// MethodNotFound represents a missing gRPC method in an upstream
+	MethodNotFound Code = 5
+	// MessageTypeMismatch represents user provided JSON not matching the message's type
 	MessageTypeMismatch Code = 6
-	Unauthorized        Code = 7
-	Unknown             Code = 8
+	// Unknown represents an unknown internal error
+	Unknown Code = 8
+	// VersionNotSpecified represents the user not specifying the upstream version when it is required.
 	VersionNotSpecified Code = 9
-	VersionUndecidable  Code = 10
+	// VersionUndecidable represents there being multiple upstreams that match the specified (service, version) pair
+	VersionUndecidable Code = 10
 )
 
 func (e *Error) Error() string {
 	switch e.Code {
-	case InvalidPath:
-		return "nothing here"
-	case MethodNotAllowed:
-		return "method not allowed"
 	case BackendConnFailure:
 		return "could not connect to backend gRPC service"
 	case ServiceUnresolvable:
@@ -38,8 +41,6 @@ func (e *Error) Error() string {
 		return "no such gRPC method"
 	case MessageTypeMismatch:
 		return "message type mismatch"
-	case Unauthorized:
-		return "unauthorized"
 	case VersionNotSpecified:
 		return "multiple versions of this service exist. specify version in request"
 	case VersionUndecidable:
