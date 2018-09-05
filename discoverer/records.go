@@ -2,11 +2,7 @@ package discoverer
 
 import (
 	"fmt"
-	"net/url"
-	"os"
 	"sync"
-
-	"gopkg.in/yaml.v2"
 
 	"github.com/mercari/grpc-http-proxy"
 )
@@ -60,30 +56,6 @@ func NewRecords() *records {
 		m:     m,
 		mutex: sync.RWMutex{},
 	}
-}
-
-func NewRecordsFromYAML(yamlFile string) (*records, error) {
-	r := NewRecords()
-	rawMapping := make(map[string]map[string]string)
-	f, err := os.Open(yamlFile)
-	if err != nil {
-		return nil, err
-	}
-	d := yaml.NewDecoder(f)
-	err = d.Decode(rawMapping)
-	if err != nil {
-		return nil, err
-	}
-	for service, versions := range rawMapping {
-		for version, rawurl := range versions {
-			u, err := url.Parse(rawurl)
-			if err != nil {
-				return nil, err
-			}
-			r.SetRecord(service, version, u)
-		}
-	}
-	return r, nil
 }
 
 func (r *records) ClearRecords() {
