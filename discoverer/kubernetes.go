@@ -32,7 +32,7 @@ type Kubernetes struct {
 	informer  cache.SharedIndexInformer
 	namespace string
 	lister    corelisters.ServiceLister
-	*WorkQueue
+	queue     workqueue.RateLimitingInterface
 }
 
 // NewKubernetes creates a new Kubernetes Discoverer
@@ -51,7 +51,7 @@ func NewKubernetes(
 	k := &Kubernetes{
 		records:   NewRecords(),
 		logger:    l,
-		WorkQueue: NewWorkQueue(),
+		queue:     workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "Services"),
 		namespace: namespace,
 	}
 	serviceInformer := infFactory.Core().V1().Services()
@@ -63,7 +63,7 @@ func NewKubernetes(
 			if !ok {
 				return
 			}
-			k.enqueue(Event{
+			k.queue.AddRateLimited(Event{
 				EventType: createEvent,
 				Meta:      &svc.ObjectMeta,
 			})
@@ -74,7 +74,7 @@ func NewKubernetes(
 			if !ok {
 				return
 			}
-			k.enqueue(Event{
+			k.queue.AddRateLimited(Event{
 				EventType: deleteEvent,
 				Meta:      &svc.ObjectMeta,
 			})
@@ -85,7 +85,7 @@ func NewKubernetes(
 			if !ok {
 				return
 			}
-			k.enqueue(Event{
+			k.queue.AddRateLimited(Event{
 				EventType: updateEvent,
 				Meta:      &newSvc.ObjectMeta,
 			})
@@ -200,19 +200,3 @@ const (
 	updateEvent EventType = "UPDATE"
 	deleteEvent EventType = "DELETE"
 )
-
-// WorkQueue has a queue of Events in need of processing
-type WorkQueue struct {
-	queue workqueue.RateLimitingInterface
-}
-
-// NewWorkQueue creates a new WorkQueue
-func NewWorkQueue() *WorkQueue {
-	return &WorkQueue{
-		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "Services"),
-	}
-}
-
-func (q *WorkQueue) enqueue(evt Event) {
-	q.queue.AddRateLimited(evt)
-}
