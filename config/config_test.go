@@ -9,6 +9,7 @@ func TestReadFromEnv(t *testing.T) {
 	pairs := map[string]string{
 		"LOG_LEVEL": "ERROR",
 		"PORT":      "8000",
+		"TOKEN":     "foo",
 	}
 
 	reset := setEnvs(t, pairs)
@@ -24,11 +25,15 @@ func TestReadFromEnv(t *testing.T) {
 	if got, want := env.Port, int16(8000); got != want {
 		t.Fatalf("got %d, want %d", got, want)
 	}
+	if got, want := env.Token, "foo"; got != want {
+		t.Fatalf("got %s, want %s", got, want)
+	}
 }
 
 func TestReadFromEnvLogLevelDefault(t *testing.T) {
 	pairs := map[string]string{
-		"PORT": "8000",
+		"PORT":  "8000",
+		"TOKEN": "foo",
 	}
 
 	reset := setEnvs(t, pairs)
@@ -49,6 +54,7 @@ func TestReadFromEnvLogLevelDefault(t *testing.T) {
 func TestReadFromEnvPortDefault(t *testing.T) {
 	pairs := map[string]string{
 		"LOG_LEVEL": "ERROR",
+		"TOKEN":     "foo",
 	}
 
 	reset := setEnvs(t, pairs)
@@ -63,6 +69,24 @@ func TestReadFromEnvPortDefault(t *testing.T) {
 	}
 	if got, want := env.Port, int16(3000); got != want {
 		t.Fatalf("got %d, want %d", got, want)
+	}
+	if got, want := env.Token, "foo"; got != want {
+		t.Fatalf("got %s, want %s", got, want)
+	}
+}
+
+func TestReadFromEnvTokenRequired(t *testing.T) {
+	pairs := map[string]string{
+		"LOG_LEVEL": "ERROR",
+		"PORT":      "3000",
+	}
+
+	reset := setEnvs(t, pairs)
+	defer reset()
+
+	_, err := ReadFromEnv()
+	if err == nil {
+		t.Fatal("no error even though TOKEN is unspecified")
 	}
 }
 

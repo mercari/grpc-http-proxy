@@ -11,6 +11,9 @@ type Env struct {
 
 	// Port is the port number grpc-http-proxy will listen on
 	Port int16 `envconfig:"PORT" default:"3000"`
+
+	// Token is the access token
+	Token string `envconfig:"TOKEN" required:"true"`
 }
 
 func ReadFromEnv() (*Env, error) {

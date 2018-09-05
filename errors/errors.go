@@ -64,6 +64,7 @@ func (e *InternalError) Error() string {
 	}
 }
 
+// HTTPStatusCode returns the HTTP status code for a internal error
 func (e *InternalError) HTTPStatusCode() int {
 	switch e.Code {
 	case UpstreamConnFailure:
@@ -85,12 +86,13 @@ func (e *InternalError) HTTPStatusCode() int {
 	}
 }
 
+// WriteJSON writes an JSON representation of the internal error for responses
 func (e *InternalError) WriteJSON(w io.Writer) error {
-	type JsonSchema struct {
+	type JSONSchema struct {
 		Status  int    `json:"status"`
 		Message string `json:"message"`
 	}
-	return json.NewEncoder(w).Encode(&JsonSchema{
+	return json.NewEncoder(w).Encode(&JSONSchema{
 		Status:  e.HTTPStatusCode(),
 		Message: e.Message,
 	})
@@ -146,6 +148,7 @@ func (e *GRPCError) HTTPStatusCode() int {
 	}
 }
 
+// Error satisfies the error interface
 func (e *GRPCError) Error() string {
 	return e.Message
 }
