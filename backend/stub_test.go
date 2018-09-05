@@ -45,15 +45,6 @@ func TestStub_InvokeRPC(t *testing.T) {
 				Message:    "unary unimplemented",
 			},
 		},
-		{
-			name:           "grpc error",
-			methodName:     "UnaryCall",
-			outputMsgIsNil: true,
-			error: &errors.GRPCError{
-				StatusCode: int(codes.Unimplemented),
-				Message:    "unary unimplemented",
-			},
-		},
 	}
 	const fileName = "grpc_testing/test.proto"
 	const target = "localhost:5000"
@@ -101,7 +92,6 @@ func TestStub_InvokeRPC(t *testing.T) {
 					if got, want := v, expected; !reflect.DeepEqual(got, want) {
 						t.Fatalf("got %v, want %v", got, want)
 					}
-
 				}
 			}
 			if got, want := outputMsg == nil, tc.outputMsgIsNil; got != want {
