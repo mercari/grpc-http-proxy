@@ -6,10 +6,13 @@ import (
 	"os"
 
 	"go.uber.org/zap"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 
 	"github.com/mercari/grpc-http-proxy/config"
 	"github.com/mercari/grpc-http-proxy/http"
 	"github.com/mercari/grpc-http-proxy/log"
+	"github.com/mercari/grpc-http-proxy/source"
 )
 
 func main() {
@@ -24,7 +27,18 @@ func main() {
 		os.Exit(1)
 	}
 
-	s := http.New(env.Token, logger)
+	k8sConfig, err := rest.InClusterConfig()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "[ERROR] Failed to create k8s config: %s\n", err)
+		os.Exit(1)
+	}
+	k8sClient, err := kubernetes.NewForConfig(k8sConfig)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "[ERROR] Failed to create k8s client: %s\n", err)
+		os.Exit(1)
+	}
+	d := source.NewService(k8sClient, "", logger)
+	s := http.New(env.Token, d, logger)
 	logger.Info("starting grpc-http-proxy",
 		zap.String("log_level", env.LogLevel),
 		zap.Int16("port", env.Port),

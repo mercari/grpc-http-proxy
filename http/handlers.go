@@ -1,13 +1,18 @@
 package http
 
 import (
-	"encoding/json"
+	"io/ioutil"
 	"net/http"
 	"strings"
+
+	grpc_metadata "google.golang.org/grpc/metadata"
+
+	perrors "github.com/mercari/grpc-http-proxy/errors"
+	"github.com/mercari/grpc-http-proxy/metadata"
+	"github.com/pkg/errors"
 )
 
-// This struct is for a dummy response. It will be removed in the future.
-type placeholderResponse struct {
+type callee struct {
 	ServiceVersion string `json:"serviceVersion"`
 	Service        string `json:"service"`
 	Method         string `json:"method"`
@@ -29,7 +34,7 @@ func (s *Server) CatchAllHandler() http.HandlerFunc {
 	}
 }
 
-func (s *Server) RPCCallHandler() http.HandlerFunc {
+func (s *Server) RPCCallHandler(newClient func() Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			w.WriteHeader(http.StatusMethodNotAllowed)
@@ -43,8 +48,7 @@ func (s *Server) RPCCallHandler() http.HandlerFunc {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		// todo(tomoyat1) extract metadata from http request header
-		resp := placeholderResponse{
+		c := callee{
 			Service: parts[2],
 			Method:  parts[3],
 		}
@@ -53,13 +57,40 @@ func (s *Server) RPCCallHandler() http.HandlerFunc {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
-			resp.ServiceVersion = v[0]
+			c.ServiceVersion = v[0]
 		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		ctx := grpc_metadata.NewOutgoingContext(r.Context(),
+			grpc_metadata.MD(metadata.MetadataFromHeaders(r.Header)))
+		u, err := s.discoverer.Resolve(c.Service, c.ServiceVersion)
+		if err != nil {
+			returnError(w, errors.Cause(err).(perrors.Error))
+			return
+		}
+		client := newClient()
+		client.Connect(ctx, u)
+		md := make(metadata.Metadata)
+
+		inputMessage, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		response, err := client.Call(ctx, c.Service, c.Method, inputMessage, &md)
+		if err != nil {
+			returnError(w, errors.Cause(err).(perrors.Error))
+			return
+		}
 		/* TODO(tomoyat1) emit logs based on results */
 
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
+		w.Write(response)
 		return
 	}
+}
+
+func returnError(w http.ResponseWriter, err perrors.Error) {
+	w.WriteHeader(err.HTTPStatusCode())
+	err.WriteJSON(w)
+	return
 }

@@ -43,6 +43,7 @@ const (
 	VersionUndecidable Code = 10
 )
 
+// Error satisfies the error interface
 func (e *InternalError) Error() string {
 	switch e.Code {
 	case UpstreamConnFailure:
@@ -151,4 +152,9 @@ func (e *GRPCError) HTTPStatusCode() int {
 // Error satisfies the error interface
 func (e *GRPCError) Error() string {
 	return e.Message
+}
+
+// WriteJSON writes an JSON representation of the gRPC error for responses
+func (e *GRPCError) WriteJSON(w io.Writer) error {
+	return json.NewEncoder(w).Encode(e)
 }

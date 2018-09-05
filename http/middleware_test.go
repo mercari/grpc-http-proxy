@@ -52,11 +52,12 @@ func TestServer_withAccessTokenInvalidToken(t *testing.T) {
 			},
 		},
 	}
+	d := newFakeDiscoverer(t)
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(*testing.T) {
 			logger, logs := observer.New(zapcore.InfoLevel)
-			server := New(tc.expectedToken, zap.New(logger))
+			server := New(tc.expectedToken, d, zap.New(logger))
 			rr := httptest.NewRecorder()
 			handlerF := server.withAccessToken(func(w http.ResponseWriter, r *http.Request) {
 				panic("this shouldn't be called")
@@ -118,7 +119,8 @@ func TestServer_withLog(t *testing.T) {
 		},
 	}
 	logger, logs := observer.New(zapcore.InfoLevel)
-	server := New("foo", zap.New(logger))
+	d := newFakeDiscoverer(t)
+	server := New("foo", d, zap.New(logger))
 	rr := httptest.NewRecorder()
 	handlerF := server.withLog(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

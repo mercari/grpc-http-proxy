@@ -1,12 +1,79 @@
 package http
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/mercari/grpc-http-proxy/log"
+	"github.com/mercari/grpc-http-proxy/metadata"
 )
+
+type fakeDiscoverer struct {
+	t *testing.T
+}
+
+func newFakeDiscoverer(t *testing.T) *fakeDiscoverer {
+	return &fakeDiscoverer{
+		t: t,
+	}
+}
+
+func (d *fakeDiscoverer) Resolve(service, version string) (*url.URL, error) {
+	var rawurl string
+	if version == "" {
+		rawurl = service + ":5000"
+	} else {
+		rawurl = fmt.Sprintf("%s.%s:5000", version, service)
+	}
+	u, _ := url.Parse(rawurl)
+	return u, nil
+}
+
+type fakeClient struct {
+	t       *testing.T
+	service string
+	version string
+	err     error
+}
+
+func newFakeClient(t *testing.T) *fakeClient {
+	return &fakeClient{
+		t: t,
+	}
+}
+
+func (c *fakeClient) Connect(ctx context.Context, target *url.URL) error {
+	parts := strings.Split(target.String(), ".")
+	if len(parts) == 2 {
+		c.version = parts[0]
+		c.service = strings.TrimSuffix(parts[1], ":5000")
+	} else {
+		c.version = ""
+		c.service = strings.TrimSuffix(target.String(), ":5000")
+	}
+	return nil
+}
+
+func (c *fakeClient) CloseConn() error {
+	return nil
+}
+
+func (c *fakeClient) Call(ctx context.Context,
+	serviceName, methodName string,
+	message []byte,
+	md *metadata.Metadata,
+) ([]byte, error) {
+	response := fmt.Sprintf("{\"serviceVersion\":\"%s\",\"service\":\"%s\",\"method\":\"%s\"}\n",
+		c.version,
+		c.service,
+		methodName)
+	return []byte(response), nil
+}
 
 func TestServer_LivenessProbeHandler(t *testing.T) {
 	cases := []struct {
@@ -25,7 +92,8 @@ func TestServer_LivenessProbeHandler(t *testing.T) {
 			status: http.StatusMethodNotAllowed,
 		},
 	}
-	server := New("foo", log.NewDiscard())
+	d := newFakeDiscoverer(t)
+	server := New("foo", d, log.NewDiscard())
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			rr := httptest.NewRecorder()
@@ -51,8 +119,9 @@ func TestServer_CatchAllHandler(t *testing.T) {
 			path:   "/notfound",
 		},
 	}
+	d := newFakeDiscoverer(t)
 	for _, tc := range cases {
-		server := New("foo", log.NewDiscard())
+		server := New("foo", d, log.NewDiscard())
 		t.Run(tc.name, func(*testing.T) {
 			rr := httptest.NewRecorder()
 			handlerF := server.CatchAllHandler()
@@ -115,11 +184,15 @@ func TestServer_RPCCallHandler(t *testing.T) {
 			resp:        "",
 		},
 	}
-	server := New("foo", log.NewDiscard())
+	d := newFakeDiscoverer(t)
+	server := New("foo", d, log.NewDiscard())
+	newClient := func() Client {
+		return newFakeClient(t)
+	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(*testing.T) {
 			rr := httptest.NewRecorder()
-			handlerF := server.RPCCallHandler()
+			handlerF := server.RPCCallHandler(newClient)
 			handlerF(rr, httptest.NewRequest(tc.method, tc.path, nil))
 
 			if got, want := rr.Result().StatusCode, tc.status; got != want {
