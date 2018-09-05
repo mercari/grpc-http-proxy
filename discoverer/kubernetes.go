@@ -61,6 +61,7 @@ func NewKubernetes(
 		AddFunc: func(obj interface{}) {
 			svc, ok := obj.(*core.Service)
 			if !ok {
+				k.logger.Error(fmt.Sprintf("event for invalid object; got %T want *core.Service", obj))
 				return
 			}
 			k.queue.AddRateLimited(Event{
@@ -72,6 +73,7 @@ func NewKubernetes(
 		DeleteFunc: func(obj interface{}) {
 			svc, ok := obj.(*core.Service)
 			if !ok {
+				k.logger.Error(fmt.Sprintf("event for invalid object; got %T want *core.Service", obj))
 				return
 			}
 			k.queue.AddRateLimited(Event{
@@ -83,6 +85,7 @@ func NewKubernetes(
 		UpdateFunc: func(oldObj, newObj interface{}) {
 			newSvc, ok := newObj.(*core.Service)
 			if !ok {
+				k.logger.Error(fmt.Sprintf("event for invalid object; got %T want *core.Service", newObj))
 				return
 			}
 			k.queue.AddRateLimited(Event{
@@ -158,6 +161,7 @@ func (k *Kubernetes) eventHandler(evt Event) {
 	for _, o := range objs {
 		s, ok := o.(*core.Service)
 		if !ok {
+			k.logger.Error(fmt.Sprintf("invalid object in Store; got %T want *core.Service", o))
 			continue
 		}
 		if metav1.HasAnnotation(s.ObjectMeta, serviceNameAnnotationKey) {
