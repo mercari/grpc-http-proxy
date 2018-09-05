@@ -66,7 +66,7 @@ func NewKubernetes(
 			}
 			k.queue.AddRateLimited(Event{
 				EventType: createEvent,
-				Meta:      &svc.ObjectMeta,
+				Svc:       svc,
 			})
 			return
 		},
@@ -78,11 +78,16 @@ func NewKubernetes(
 			}
 			k.queue.AddRateLimited(Event{
 				EventType: deleteEvent,
-				Meta:      &svc.ObjectMeta,
+				Svc:       svc,
 			})
 			return
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
+			oldSvc, ok := oldObj.(*core.Service)
+			if !ok {
+				k.logger.Error(fmt.Sprintf("event for invalid object; got %T want *core.Service", newObj))
+				return
+			}
 			newSvc, ok := newObj.(*core.Service)
 			if !ok {
 				k.logger.Error(fmt.Sprintf("event for invalid object; got %T want *core.Service", newObj))
@@ -90,7 +95,8 @@ func NewKubernetes(
 			}
 			k.queue.AddRateLimited(Event{
 				EventType: updateEvent,
-				Meta:      &newSvc.ObjectMeta,
+				Svc:       newSvc,
+				OldSvc:    oldSvc,
 			})
 			return
 		},
@@ -153,9 +159,97 @@ func (k *Kubernetes) processNextItem() bool {
 }
 
 func (k *Kubernetes) eventHandler(evt Event) {
+	rawurl := fmt.Sprintf("%s.%s.svc.cluster.local", evt.Svc.Name, evt.Svc.Namespace)
+	u, err := url.Parse(rawurl)
+	if err != nil {
+		k.logger.Error("failure in processing change to Service",
+			zap.String("namespace", evt.Svc.Namespace),
+			zap.String("name", evt.Svc.Name),
+			zap.String("err", err.Error()),
+		)
+		return
+	}
+	switch evt.EventType {
+	case createEvent:
+		if !metav1.HasAnnotation(evt.Svc.ObjectMeta, serviceNameAnnotationKey) {
+			k.logger.Info("skipping service because of no annotation",
+				zap.String("namespace", evt.Svc.Namespace),
+				zap.String("name", evt.Svc.Name),
+			)
+			return
+		}
+		gRPCServiceName := evt.Svc.Annotations[serviceNameAnnotationKey]
+
+		if metav1.HasAnnotation(evt.Svc.ObjectMeta, backendVersionAnnotationKey) {
+			version := evt.Svc.Annotations[backendVersionAnnotationKey]
+			k.SetRecord(gRPCServiceName, version, u)
+		} else {
+			k.SetRecord(gRPCServiceName, "", u)
+		}
+	case deleteEvent:
+		if !metav1.HasAnnotation(evt.Svc.ObjectMeta, serviceNameAnnotationKey) {
+			k.logger.Info("skipping service because of no annotation",
+				zap.String("namespace", evt.Svc.Namespace),
+				zap.String("name", evt.Svc.Name),
+			)
+			return
+		}
+		gRPCServiceName := evt.Svc.Annotations[serviceNameAnnotationKey]
+
+		if metav1.HasAnnotation(evt.Svc.ObjectMeta, backendVersionAnnotationKey) {
+			version := evt.Svc.Annotations[backendVersionAnnotationKey]
+			k.RemoveRecord(gRPCServiceName, version)
+		} else {
+
+		}
+	case updateEvent:
+		// Service versions before and after update do not have annotations
+		// Skip service and return
+		if !metav1.HasAnnotation(evt.Svc.ObjectMeta, serviceNameAnnotationKey) &&
+			!metav1.HasAnnotation(evt.OldSvc.ObjectMeta, serviceNameAnnotationKey) {
+			k.logger.Info("skipping service because of no annotation",
+				zap.String("namespace", evt.Svc.Namespace),
+				zap.String("name", evt.Svc.Name),
+			)
+			return
+		}
+
+		// Service versions before and after update both have gRPC service annotations
+		if metav1.HasAnnotation(evt.Svc.ObjectMeta, serviceNameAnnotationKey) &&
+			metav1.HasAnnotation(evt.OldSvc.ObjectMeta, serviceNameAnnotationKey) {
+			gRPCServiceName := evt.Svc.Annotations[serviceNameAnnotationKey]
+			version := evt.Svc.Annotations[backendVersionAnnotationKey]
+			if !k.RecordExists(gRPCServiceName, version) {
+				// Record is missing, so add it
+				k.SetRecord(gRPCServiceName, version, u)
+				return
+			} else {
+				// recreate entire record table to prevent avoid cases
+				k.recreateRecordTable(evt)
+				return
+			}
+		}
+
+		// gRPC service annotation was removed to the Service
+		if !metav1.HasAnnotation(evt.Svc.ObjectMeta, serviceNameAnnotationKey) {
+			gRPCServiceName := evt.Svc.Annotations[serviceNameAnnotationKey]
+			version := evt.Svc.Annotations[backendVersionAnnotationKey]
+			k.RemoveRecord(gRPCServiceName, version)
+			return
+		}
+
+		// gRPC service annotation was added to the Service
+		gRPCServiceName := evt.Svc.Annotations[serviceNameAnnotationKey]
+		version := evt.Svc.Annotations[backendVersionAnnotationKey]
+		k.SetRecord(gRPCServiceName, version, u)
+	}
+}
+
+func (k *Kubernetes) recreateRecordTable(evt Event) {
 	// The following logic recreates the mapping between gRPC services and Kubernetes Services
 	// every time there is a change to a service somewhere in the cluster.
-	// This does not scale well in clusters with large amounts of Services, and needs a fix.
+	// This does not scale well in clusters with large amounts of Services, so it is only used
+	// in some places to avoid edge cases.
 	objs := k.informer.GetStore().List()
 	svcs := make([]*core.Service, 0)
 	for _, o := range objs {
@@ -175,8 +269,8 @@ func (k *Kubernetes) eventHandler(evt Event) {
 		u, err := url.Parse(rawurl)
 		if err != nil {
 			k.logger.Error("failure in processing change to Service",
-				zap.String("namespace", evt.Meta.Namespace),
-				zap.String("name", evt.Meta.Name),
+				zap.String("namespace", evt.Svc.Namespace),
+				zap.String("name", evt.Svc.Name),
 				zap.String("err", err.Error()),
 			)
 			return
@@ -193,7 +287,8 @@ func (k *Kubernetes) eventHandler(evt Event) {
 // Event is an change event to a Kubernetes Service
 type Event struct {
 	EventType
-	Meta *metav1.ObjectMeta
+	Svc    *core.Service
+	OldSvc *core.Service
 }
 
 // EventType is the type of an event

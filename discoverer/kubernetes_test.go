@@ -355,7 +355,6 @@ func TestServiceUpdated(t *testing.T) {
 			"foo-service",
 			"bar-ns",
 			map[string]string{
-
 				serviceNameAnnotationKey:    "Echo",
 				backendVersionAnnotationKey: "v1",
 			},
@@ -408,7 +407,6 @@ func TestServiceUpdated(t *testing.T) {
 			"foo-service",
 			"bar-ns",
 			map[string]string{
-
 				serviceNameAnnotationKey:    "Echo",
 				backendVersionAnnotationKey: "v1",
 			},
@@ -465,7 +463,6 @@ func TestServiceUpdated(t *testing.T) {
 			"foo-service",
 			"bar-ns",
 			map[string]string{
-
 				serviceNameAnnotationKey: "Echo",
 			},
 			[]core.ServicePort{
@@ -487,7 +484,6 @@ func TestServiceUpdated(t *testing.T) {
 			"foo-service-v2",
 			"bar-ns",
 			map[string]string{
-
 				serviceNameAnnotationKey: "Echo",
 			},
 			[]core.ServicePort{
@@ -511,6 +507,111 @@ func TestServiceUpdated(t *testing.T) {
 			t.Fatal(err)
 		}
 		waitForService(f.client, fooV2.Namespace, fooV2.Name)
+		time.Sleep(1 * time.Second)
+		k.records.mutex.RLock()
+		defer k.records.mutex.RUnlock()
+		if got, want := k.records.m, m; !reflect.DeepEqual(got, want) {
+			t.Fatalf("got %v, want %v", got, want)
+		}
+	})
+
+	t.Run("add gRPC service annotation to Service", func(t *testing.T) {
+		m := map[string]versions{
+			"Echo": {
+				"v1": entry{
+					true,
+					parseURL("foo-service.bar-ns.svc.cluster.local", t),
+				},
+			},
+		}
+		f := newFixture(t)
+		k := f.newKubernetes()
+		stopCh := make(chan struct{})
+		k.Run(stopCh)
+		time.Sleep(time.Second)
+
+		// create v1 of foo-service
+		fooSvc := newService(
+			"foo-service",
+			"bar-ns",
+			map[string]string{},
+			[]core.ServicePort{
+				{
+					Name:     "grpc",
+					Protocol: "TCP",
+					Port:     5000,
+				},
+			},
+		)
+		_, err := f.client.Core().Services(fooSvc.Namespace).Create(fooSvc)
+		if err != nil {
+			t.Fatal(err)
+		}
+		waitForService(f.client, fooSvc.Namespace, fooSvc.Name)
+
+		// add gRPC service annotation
+		fooSvc.Annotations[serviceNameAnnotationKey] = "Echo"
+		// add version annotation
+		fooSvc.Annotations[backendVersionAnnotationKey] = "v1"
+		_, err = f.client.Core().Services(fooSvc.Namespace).Update(fooSvc)
+		if err != nil {
+			t.Fatal(err)
+		}
+		waitForService(f.client, fooSvc.Namespace, fooSvc.Name)
+		time.Sleep(1 * time.Second)
+		k.records.mutex.RLock()
+		defer k.records.mutex.RUnlock()
+		if got, want := k.records.m, m; !reflect.DeepEqual(got, want) {
+			t.Fatalf("got %v, want %v", got, want)
+		}
+	})
+
+	t.Run("remove gRPC service annotation from Service", func(t *testing.T) {
+		m := map[string]versions{
+			"Echo": {
+				"v1": entry{
+					true,
+					parseURL("foo-service.bar-ns.svc.cluster.local", t),
+				},
+			},
+		}
+		f := newFixture(t)
+		k := f.newKubernetes()
+		stopCh := make(chan struct{})
+		k.Run(stopCh)
+		time.Sleep(time.Second)
+
+		// create v1 of foo-service
+		fooSvc := newService(
+			"foo-service",
+			"bar-ns",
+			map[string]string{
+				serviceNameAnnotationKey:    "Echo",
+				backendVersionAnnotationKey: "v1",
+			},
+			[]core.ServicePort{
+				{
+					Name:     "grpc",
+					Protocol: "TCP",
+					Port:     5000,
+				},
+			},
+		)
+		_, err := f.client.Core().Services(fooSvc.Namespace).Create(fooSvc)
+		if err != nil {
+			t.Fatal(err)
+		}
+		waitForService(f.client, fooSvc.Namespace, fooSvc.Name)
+
+		// remove gRPC service annotation
+		delete(fooSvc.Annotations, serviceNameAnnotationKey)
+		// remove version annotation
+		delete(fooSvc.Annotations, backendVersionAnnotationKey)
+		_, err = f.client.Core().Services(fooSvc.Namespace).Update(fooSvc)
+		if err != nil {
+			t.Fatal(err)
+		}
+		waitForService(f.client, fooSvc.Namespace, fooSvc.Name)
 		time.Sleep(1 * time.Second)
 		k.records.mutex.RLock()
 		defer k.records.mutex.RUnlock()

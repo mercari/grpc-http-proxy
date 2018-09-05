@@ -162,3 +162,14 @@ func (r *records) IsServiceUnique(svc string) bool {
 	r.mutex.RUnlock()
 	return b
 }
+
+func (r *records) RecordExists(svc, version string) bool {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+	vs, ok := r.m[svc]
+	if !ok {
+		return false
+	}
+	_, ok = vs[version]
+	return ok
+}

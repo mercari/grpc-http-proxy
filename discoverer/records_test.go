@@ -371,3 +371,51 @@ func TestRecords_RemoveRecord(t *testing.T) {
 		})
 	}
 }
+
+func TestRecords_RecordExists(t *testing.T) {
+	cases := []struct {
+		name    string
+		service string
+		version string
+		b       bool
+	}{
+		{
+			name:    "exists",
+			service: "a",
+			version: "v1",
+			b:       true,
+		},
+		{
+			name:    "service does not exist",
+			service: "b",
+			version: "v1",
+			b:       false,
+		},
+		{
+			name:    "version does not exist",
+			service: "a",
+			version: "v2",
+			b:       false,
+		},
+	}
+
+	r := records{
+		m: map[string]versions{
+			"a": {
+				"v1": entry{
+					true,
+					parseURL("a.v1", t),
+				},
+			},
+		},
+		mutex: sync.RWMutex{},
+	}
+	for _, tc := range cases {
+		t.Run(string(tc.name), func(t *testing.T) {
+			b := r.RecordExists(tc.service, tc.version)
+			if got, want := b, tc.b; !reflect.DeepEqual(got, want) {
+				t.Fatalf("got: %t, want %t", got, want)
+			}
+		})
+	}
+}
