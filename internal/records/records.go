@@ -1,7 +1,8 @@
-package discoverer
+package records
 
 import (
 	"fmt"
+	"reflect"
 	"sync"
 
 	"github.com/mercari/grpc-http-proxy"
@@ -14,7 +15,7 @@ type entry struct {
 	url       proxy.ServiceURL
 }
 
-type records struct {
+type Records struct {
 	m     map[string]versions
 	mutex sync.RWMutex
 }
@@ -49,22 +50,21 @@ func versionUndecidable(svc string) *proxy.Error {
 	}
 }
 
-func NewRecords() *records {
+func NewRecords() *Records {
 	m := make(map[string]versions)
-
-	return &records{
+	return &Records{
 		m:     m,
 		mutex: sync.RWMutex{},
 	}
 }
 
-func (r *records) ClearRecords() {
+func (r *Records) ClearRecords() {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	r.m = make(map[string]versions)
 }
 
-func (r records) GetRecord(svc, version string) (proxy.ServiceURL, error) {
+func (r *Records) GetRecord(svc, version string) (proxy.ServiceURL, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 	vs, ok := r.m[svc]
@@ -95,13 +95,15 @@ func (r records) GetRecord(svc, version string) (proxy.ServiceURL, error) {
 // SetRecord sets the backend service URL for the specifiec (service, version) pair.
 // When successful, true will be returned.
 // This fails if the URL for the blank version ("") is to be overwritten, and invalidates that entry.
-func (r records) SetRecord(svc, version string, url proxy.ServiceURL) bool {
+func (r *Records) SetRecord(svc, version string, url proxy.ServiceURL) bool {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	if _, ok := r.m[svc]; !ok {
 		r.m[svc] = make(map[string]entry)
 	}
 	if _, ok := r.m[svc][version]; ok && version == "" {
+		// if there are multiple backends for a given gRPC service,
+		// the blank version for it becomes undecidable.
 		r.m[svc][version] = entry{
 			decidable: false,
 		}
@@ -114,7 +116,7 @@ func (r records) SetRecord(svc, version string, url proxy.ServiceURL) bool {
 	return true
 }
 
-func (r *records) RemoveRecord(svc, version string) {
+func (r *Records) RemoveRecord(svc, version string) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -128,14 +130,14 @@ func (r *records) RemoveRecord(svc, version string) {
 	}
 }
 
-func (r *records) IsServiceUnique(svc string) bool {
+func (r *Records) IsServiceUnique(svc string) bool {
 	r.mutex.RLock()
 	b := len(r.m[svc]) == 1
 	r.mutex.RUnlock()
 	return b
 }
 
-func (r *records) RecordExists(svc, version string) bool {
+func (r *Records) RecordExists(svc, version string) bool {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
 	vs, ok := r.m[svc]
@@ -144,4 +146,13 @@ func (r *records) RecordExists(svc, version string) bool {
 	}
 	_, ok = vs[version]
 	return ok
+}
+
+// Equals checks record table equality. This is useful for writing tests
+func (r *Records) Equals(r2 *Records) bool {
+	r.mutex.RLock()
+	r2.mutex.RLock()
+	defer r.mutex.RUnlock()
+	defer r2.mutex.RUnlock()
+	return reflect.DeepEqual(r.m, r2.m)
 }

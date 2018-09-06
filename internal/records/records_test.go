@@ -1,4 +1,4 @@
-package discoverer
+package records
 
 import (
 	"net/url"
@@ -19,7 +19,7 @@ func parseURL(urlStr string, t *testing.T) proxy.ServiceURL {
 }
 
 func TestNewRecords(t *testing.T) {
-	want := &records{
+	want := &Records{
 		m:     make(map[string]versions),
 		mutex: sync.RWMutex{},
 	}
@@ -88,7 +88,7 @@ func TestRecords_GetRecord(t *testing.T) {
 		},
 	}
 
-	r := records{
+	r := Records{
 		m: map[string]versions{
 			"a": {
 				"v1": entry{
@@ -198,7 +198,7 @@ func TestRecords_SetRecord(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(string(tc.name), func(t *testing.T) {
-			r := records{
+			r := Records{
 				m:     tc.m,
 				mutex: sync.RWMutex{},
 			}
@@ -228,7 +228,7 @@ func TestRecords_IsServiceUnique(t *testing.T) {
 		},
 	}
 
-	r := records{
+	r := Records{
 		m: map[string]versions{
 			"a": {
 				"v1": entry{
@@ -316,7 +316,7 @@ func TestRecords_RemoveRecord(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(string(tc.name), func(t *testing.T) {
-			r := records{
+			r := Records{
 				m:     tc.m,
 				mutex: sync.RWMutex{},
 			}
@@ -355,7 +355,7 @@ func TestRecords_RecordExists(t *testing.T) {
 		},
 	}
 
-	r := records{
+	r := Records{
 		m: map[string]versions{
 			"a": {
 				"v1": entry{

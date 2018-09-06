@@ -17,6 +17,7 @@ import (
 	"k8s.io/client-go/util/workqueue"
 
 	"github.com/mercari/grpc-http-proxy"
+	"github.com/mercari/grpc-http-proxy/internal/records"
 )
 
 const (
@@ -25,9 +26,9 @@ const (
 	backendVersionAnnotationKey = "backend-version"
 )
 
-// Kubernetes watches the Kubernetes api and updates records when there are changes to Service resources
+// Kubernetes watches the Kubernetes API and updates records when there are changes to Service resources
 type Kubernetes struct {
-	*records
+	records   *records.Records
 	logger    *zap.Logger
 	informer  cache.SharedIndexInformer
 	namespace string
@@ -49,7 +50,7 @@ func NewKubernetes(
 		time.Second, opts...)
 
 	k := &Kubernetes{
-		records:   NewRecords(),
+		records:   records.NewRecords(),
 		logger:    l,
 		queue:     workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "Services"),
 		namespace: namespace,
@@ -182,10 +183,10 @@ func (k *Kubernetes) eventHandler(evt Event) {
 
 		if metav1.HasAnnotation(evt.Svc.ObjectMeta, backendVersionAnnotationKey) {
 			version := evt.Svc.Annotations[backendVersionAnnotationKey]
-			k.SetRecord(gRPCServiceName, version, u)
-		} else {
-			k.SetRecord(gRPCServiceName, "", u)
+			k.records.SetRecord(gRPCServiceName, version, u)
+			return
 		}
+		k.records.SetRecord(gRPCServiceName, "", u)
 	case deleteEvent:
 		if !metav1.HasAnnotation(evt.Svc.ObjectMeta, serviceNameAnnotationKey) {
 			k.logger.Info("skipping service because of no annotation",
@@ -198,9 +199,10 @@ func (k *Kubernetes) eventHandler(evt Event) {
 
 		if metav1.HasAnnotation(evt.Svc.ObjectMeta, backendVersionAnnotationKey) {
 			version := evt.Svc.Annotations[backendVersionAnnotationKey]
-			k.RemoveRecord(gRPCServiceName, version)
+			k.records.RemoveRecord(gRPCServiceName, version)
 		} else {
-
+			// recreate entire record table to prevent avoid edge cases
+			k.recreateRecordTable(evt)
 		}
 	case updateEvent:
 		// Service versions before and after update do not have annotations
@@ -218,30 +220,58 @@ func (k *Kubernetes) eventHandler(evt Event) {
 		if metav1.HasAnnotation(evt.Svc.ObjectMeta, serviceNameAnnotationKey) &&
 			metav1.HasAnnotation(evt.OldSvc.ObjectMeta, serviceNameAnnotationKey) {
 			gRPCServiceName := evt.Svc.Annotations[serviceNameAnnotationKey]
+			oldGRPCServiceName := evt.OldSvc.Annotations[serviceNameAnnotationKey]
 			version := evt.Svc.Annotations[backendVersionAnnotationKey]
-			if !k.RecordExists(gRPCServiceName, version) {
-				// Record is missing, so add it
-				k.SetRecord(gRPCServiceName, version, u)
+			oldVersion := evt.OldSvc.Annotations[backendVersionAnnotationKey]
+
+			if oldGRPCServiceName != gRPCServiceName {
+				// gRPC service name was changed
+				if oldVersion != "" && version != "" {
+					// safe to remove and add, since both old and new are versioned
+					k.records.RemoveRecord(oldGRPCServiceName, oldVersion)
+					k.records.SetRecord(gRPCServiceName, version, u)
+					return
+				}
+				// recreate record table to avoid edge cases around empty versions
+				k.recreateRecordTable(evt)
 				return
 			}
 
-			// recreate entire record table to prevent avoid cases
-			k.recreateRecordTable(evt)
+			if version != oldVersion {
+				// version annotation was changed
+				if oldVersion != "" && version != "" {
+					// safe to remove and add, since both old and new are versioned
+					k.records.RemoveRecord(oldGRPCServiceName, oldVersion)
+					k.records.SetRecord(gRPCServiceName, version, u)
+					return
+				}
+				// recreate record table to avoid edge cases around empty versions
+				k.recreateRecordTable(evt)
+				return
+			}
+
+			if !k.records.RecordExists(gRPCServiceName, version) {
+				// Record is missing, so add it
+				k.records.SetRecord(gRPCServiceName, version, u)
+				return
+			}
+
+			// do nothing, since no annotations were changed
 			return
 		}
 
-		// gRPC service annotation was removed to the Service
+		// gRPC service annotation was removed from the Service
 		if !metav1.HasAnnotation(evt.Svc.ObjectMeta, serviceNameAnnotationKey) {
-			gRPCServiceName := evt.Svc.Annotations[serviceNameAnnotationKey]
-			version := evt.Svc.Annotations[backendVersionAnnotationKey]
-			k.RemoveRecord(gRPCServiceName, version)
+			oldGRPCServiceName := evt.OldSvc.Annotations[serviceNameAnnotationKey]
+			oldVersion := evt.OldSvc.Annotations[backendVersionAnnotationKey]
+			k.records.RemoveRecord(oldGRPCServiceName, oldVersion)
 			return
 		}
 
 		// gRPC service annotation was added to the Service
 		gRPCServiceName := evt.Svc.Annotations[serviceNameAnnotationKey]
 		version := evt.Svc.Annotations[backendVersionAnnotationKey]
-		k.SetRecord(gRPCServiceName, version, u)
+		k.records.SetRecord(gRPCServiceName, version, u)
 	}
 }
 
@@ -277,9 +307,9 @@ func (k *Kubernetes) recreateRecordTable(evt Event) {
 		}
 		if metav1.HasAnnotation(s.ObjectMeta, backendVersionAnnotationKey) {
 			version := s.Annotations[backendVersionAnnotationKey]
-			k.SetRecord(gRPCServiceName, version, u)
+			k.records.SetRecord(gRPCServiceName, version, u)
 		} else {
-			k.SetRecord(gRPCServiceName, "", u)
+			k.records.SetRecord(gRPCServiceName, "", u)
 		}
 	}
 }
