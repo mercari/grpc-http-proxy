@@ -54,7 +54,7 @@ func TestStub_InvokeRPC(t *testing.T) {
 	time.Sleep(time.Second)
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			serviceDesc := serviceDescriptorFromFileDescriptor(fileDesc, "grpc.testing.TestService")
+			serviceDesc := serviceDescriptorFromFileDescriptor(fileDesc, serviceName)
 			if serviceDesc == nil {
 				t.Fatal("service descriptor is nil")
 			}
