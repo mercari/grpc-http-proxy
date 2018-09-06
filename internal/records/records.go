@@ -15,6 +15,8 @@ type entry struct {
 	url       proxy.ServiceURL
 }
 
+// Records contains mappings from a gRPC service to upstream hosts
+// It holds one upstream for each service version
 type Records struct {
 	m     map[string]versions
 	mutex sync.RWMutex
@@ -50,6 +52,7 @@ func versionUndecidable(svc string) *proxy.Error {
 	}
 }
 
+// NewRecords creates an empty mapping
 func NewRecords() *Records {
 	m := make(map[string]versions)
 	return &Records{
@@ -58,12 +61,14 @@ func NewRecords() *Records {
 	}
 }
 
+// ClearRecords clears all mappings
 func (r *Records) ClearRecords() {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	r.m = make(map[string]versions)
 }
 
+// GetRecord gets a records of the specified (service, version) pair
 func (r *Records) GetRecord(svc, version string) (proxy.ServiceURL, error) {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
@@ -116,6 +121,7 @@ func (r *Records) SetRecord(svc, version string, url proxy.ServiceURL) bool {
 	return true
 }
 
+// RemoveRecord removes a record of the specified (service, version) pair
 func (r *Records) RemoveRecord(svc, version string) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
@@ -130,6 +136,7 @@ func (r *Records) RemoveRecord(svc, version string) {
 	}
 }
 
+// IsServiceUnique checks if there is only one version of a service
 func (r *Records) IsServiceUnique(svc string) bool {
 	r.mutex.RLock()
 	b := len(r.m[svc]) == 1
@@ -137,6 +144,7 @@ func (r *Records) IsServiceUnique(svc string) bool {
 	return b
 }
 
+// RecordExists checks if a record exists
 func (r *Records) RecordExists(svc, version string) bool {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
