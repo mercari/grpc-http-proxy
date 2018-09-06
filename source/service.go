@@ -1,4 +1,4 @@
-package discoverer
+package source
 
 import (
 	"fmt"
@@ -26,9 +26,9 @@ const (
 	backendVersionAnnotationKey = "backend-version"
 )
 
-// Kubernetes watches the Kubernetes API and updates records when there are changes to Service resources
-type Kubernetes struct {
-	records   *records.Records
+// Service watches the Kubernetes API and updates records when there are changes to Service resources
+type Service struct {
+	*records.Records
 	logger    *zap.Logger
 	informer  cache.SharedIndexInformer
 	namespace string
@@ -36,11 +36,11 @@ type Kubernetes struct {
 	queue     workqueue.RateLimitingInterface
 }
 
-// NewKubernetes creates a new Kubernetes Discoverer
-func NewKubernetes(
+// NewService creates a new Service source
+func NewService(
 	client clientset.Interface,
 	namespace string,
-	l *zap.Logger) *Kubernetes {
+	l *zap.Logger) *Service {
 
 	opts := make([]informers.SharedInformerOption, 0)
 	if namespace != "" {
@@ -49,8 +49,8 @@ func NewKubernetes(
 	infFactory := informers.NewSharedInformerFactoryWithOptions(client,
 		time.Second, opts...)
 
-	k := &Kubernetes{
-		records:   records.NewRecords(),
+	k := &Service{
+		Records:   records.NewRecords(),
 		logger:    l,
 		queue:     workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "Services"),
 		namespace: namespace,
@@ -108,8 +108,8 @@ func NewKubernetes(
 }
 
 // Resolve resolves the FQDN for a backend providing the gRPC service specified
-func (k *Kubernetes) Resolve(svc, version string) (proxy.ServiceURL, error) {
-	r, err := k.records.GetRecord(svc, version)
+func (k *Service) Resolve(svc, version string) (proxy.ServiceURL, error) {
+	r, err := k.Records.GetRecord(svc, version)
 	if err != nil {
 		k.logger.Error("failed to resolve service",
 			zap.String("service", svc),
@@ -120,8 +120,8 @@ func (k *Kubernetes) Resolve(svc, version string) (proxy.ServiceURL, error) {
 	return r, nil
 }
 
-// Run starts the Kubernetes controller
-func (k *Kubernetes) Run(stopCh <-chan struct{}) {
+// Run starts the Service controller
+func (k *Service) Run(stopCh <-chan struct{}) {
 	go k.informer.Run(stopCh)
 	if !cache.WaitForCacheSync(stopCh,
 		k.informer.HasSynced,
@@ -131,12 +131,12 @@ func (k *Kubernetes) Run(stopCh <-chan struct{}) {
 	go wait.Until(k.runWorker, time.Second, stopCh)
 }
 
-func (k *Kubernetes) runWorker() {
+func (k *Service) runWorker() {
 	for k.processNextItem() {
 	}
 }
 
-func (k *Kubernetes) processNextItem() bool {
+func (k *Service) processNextItem() bool {
 	obj, quit := k.queue.Get()
 	if quit {
 		return false
@@ -159,7 +159,7 @@ func (k *Kubernetes) processNextItem() bool {
 	return true
 }
 
-func (k *Kubernetes) eventHandler(evt Event) {
+func (k *Service) eventHandler(evt Event) {
 	rawurl := fmt.Sprintf("%s.%s.svc.cluster.local", evt.Svc.Name, evt.Svc.Namespace)
 	u, err := url.Parse(rawurl)
 	if err != nil {
@@ -183,10 +183,10 @@ func (k *Kubernetes) eventHandler(evt Event) {
 
 		if metav1.HasAnnotation(evt.Svc.ObjectMeta, backendVersionAnnotationKey) {
 			version := evt.Svc.Annotations[backendVersionAnnotationKey]
-			k.records.SetRecord(gRPCServiceName, version, u)
+			k.Records.SetRecord(gRPCServiceName, version, u)
 			return
 		}
-		k.records.SetRecord(gRPCServiceName, "", u)
+		k.Records.SetRecord(gRPCServiceName, "", u)
 	case deleteEvent:
 		if !metav1.HasAnnotation(evt.Svc.ObjectMeta, serviceNameAnnotationKey) {
 			k.logger.Info("skipping service because of no annotation",
@@ -199,7 +199,7 @@ func (k *Kubernetes) eventHandler(evt Event) {
 
 		if metav1.HasAnnotation(evt.Svc.ObjectMeta, backendVersionAnnotationKey) {
 			version := evt.Svc.Annotations[backendVersionAnnotationKey]
-			k.records.RemoveRecord(gRPCServiceName, version)
+			k.Records.RemoveRecord(gRPCServiceName, version)
 		} else {
 			// recreate entire record table to prevent avoid edge cases
 			k.recreateRecordTable(evt)
@@ -228,8 +228,8 @@ func (k *Kubernetes) eventHandler(evt Event) {
 				// gRPC service name was changed
 				if oldVersion != "" && version != "" {
 					// safe to remove and add, since both old and new are versioned
-					k.records.RemoveRecord(oldGRPCServiceName, oldVersion)
-					k.records.SetRecord(gRPCServiceName, version, u)
+					k.Records.RemoveRecord(oldGRPCServiceName, oldVersion)
+					k.Records.SetRecord(gRPCServiceName, version, u)
 					return
 				}
 				// recreate record table to avoid edge cases around empty versions
@@ -241,8 +241,8 @@ func (k *Kubernetes) eventHandler(evt Event) {
 				// version annotation was changed
 				if oldVersion != "" && version != "" {
 					// safe to remove and add, since both old and new are versioned
-					k.records.RemoveRecord(oldGRPCServiceName, oldVersion)
-					k.records.SetRecord(gRPCServiceName, version, u)
+					k.Records.RemoveRecord(oldGRPCServiceName, oldVersion)
+					k.Records.SetRecord(gRPCServiceName, version, u)
 					return
 				}
 				// recreate record table to avoid edge cases around empty versions
@@ -250,9 +250,9 @@ func (k *Kubernetes) eventHandler(evt Event) {
 				return
 			}
 
-			if !k.records.RecordExists(gRPCServiceName, version) {
+			if !k.Records.RecordExists(gRPCServiceName, version) {
 				// Record is missing, so add it
-				k.records.SetRecord(gRPCServiceName, version, u)
+				k.Records.SetRecord(gRPCServiceName, version, u)
 				return
 			}
 
@@ -264,18 +264,18 @@ func (k *Kubernetes) eventHandler(evt Event) {
 		if !metav1.HasAnnotation(evt.Svc.ObjectMeta, serviceNameAnnotationKey) {
 			oldGRPCServiceName := evt.OldSvc.Annotations[serviceNameAnnotationKey]
 			oldVersion := evt.OldSvc.Annotations[backendVersionAnnotationKey]
-			k.records.RemoveRecord(oldGRPCServiceName, oldVersion)
+			k.Records.RemoveRecord(oldGRPCServiceName, oldVersion)
 			return
 		}
 
 		// gRPC service annotation was added to the Service
 		gRPCServiceName := evt.Svc.Annotations[serviceNameAnnotationKey]
 		version := evt.Svc.Annotations[backendVersionAnnotationKey]
-		k.records.SetRecord(gRPCServiceName, version, u)
+		k.Records.SetRecord(gRPCServiceName, version, u)
 	}
 }
 
-func (k *Kubernetes) recreateRecordTable(evt Event) {
+func (k *Service) recreateRecordTable(evt Event) {
 	// The following logic recreates the mapping between gRPC services and Kubernetes Services
 	// every time there is a change to a service somewhere in the cluster.
 	// This does not scale well in clusters with large amounts of Services, so it is only used
@@ -292,7 +292,7 @@ func (k *Kubernetes) recreateRecordTable(evt Event) {
 			svcs = append(svcs, s)
 		}
 	}
-	k.records.ClearRecords()
+	k.Records.ClearRecords()
 	for _, s := range svcs {
 		gRPCServiceName := s.Annotations[serviceNameAnnotationKey]
 		rawurl := fmt.Sprintf("%s.%s.svc.cluster.local", s.Name, s.Namespace)
@@ -307,9 +307,9 @@ func (k *Kubernetes) recreateRecordTable(evt Event) {
 		}
 		if metav1.HasAnnotation(s.ObjectMeta, backendVersionAnnotationKey) {
 			version := s.Annotations[backendVersionAnnotationKey]
-			k.records.SetRecord(gRPCServiceName, version, u)
+			k.Records.SetRecord(gRPCServiceName, version, u)
 		} else {
-			k.records.SetRecord(gRPCServiceName, "", u)
+			k.Records.SetRecord(gRPCServiceName, "", u)
 		}
 	}
 }

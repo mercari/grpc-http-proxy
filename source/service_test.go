@@ -1,4 +1,4 @@
-package discoverer
+package source
 
 import (
 	"net/url"
@@ -41,9 +41,9 @@ func newFixture(t *testing.T) *fixture {
 	return f
 }
 
-func (f *fixture) newKubernetes() *Kubernetes {
+func (f *fixture) newKubernetes() *Service {
 	f.client = fake.NewSimpleClientset(f.objects...)
-	k := NewKubernetes(f.client, "", f.logger)
+	k := NewService(f.client, "", f.logger)
 	for _, s := range f.lister {
 		k.informer.GetIndexer().Add(s)
 	}
@@ -96,7 +96,7 @@ type testCase struct {
 	code    int
 }
 
-func checkRecords(t *testing.T, k *Kubernetes, cases []testCase) {
+func checkRecords(t *testing.T, k *Service, cases []testCase) {
 	t.Helper()
 	for _, tc := range cases {
 		u, err := k.Resolve(tc.service, tc.version)
