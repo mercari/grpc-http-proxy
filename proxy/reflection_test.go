@@ -7,21 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/dynamic"
 
 	"github.com/mercari/grpc-http-proxy/errors"
 	"github.com/mercari/grpc-http-proxy/internal/testservice"
 )
-
-func newFileDescriptor(t *testing.T, file string) *desc.FileDescriptor {
-	t.Helper()
-	desc, err := desc.LoadFileDescriptor(file)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	return desc
-}
 
 func TestReflectionClient_ResolveService(t *testing.T) {
 	cases := []struct {

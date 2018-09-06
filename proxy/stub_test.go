@@ -2,7 +2,6 @@ package proxy
 
 import (
 	"context"
-	"net/url"
 	"reflect"
 	"testing"
 	"time"
@@ -14,14 +13,6 @@ import (
 	"github.com/mercari/grpc-http-proxy/errors"
 	"github.com/mercari/grpc-http-proxy/internal/testservice"
 )
-
-func parseURL(t *testing.T, rawurl string) *url.URL {
-	u, err := url.Parse(rawurl)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	return u
-}
 
 func TestStub_InvokeRPC(t *testing.T) {
 	cases := []struct {

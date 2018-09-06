@@ -44,16 +44,6 @@ type serviceDescriptor struct {
 	desc *desc.ServiceDescriptor
 }
 
-func serviceDescriptorFromFileDescriptor(fd *desc.FileDescriptor, service string) *serviceDescriptor {
-	d := fd.FindService(service)
-	if d == nil {
-		return nil
-	}
-	return &serviceDescriptor{
-		desc: d,
-	}
-}
-
 // findMethodByName finds the method descriptor with the name
 func (s *serviceDescriptor) findMethodByName(name string) (*methodDescriptor, error) {
 	d := s.desc.FindMethodByName(name)
