@@ -1,4 +1,4 @@
-package proxy
+package stub
 
 import (
 	"context"
@@ -6,12 +6,14 @@ import (
 	"testing"
 	"time"
 
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	_ "google.golang.org/grpc/test/grpc_testing"
 
 	"github.com/mercari/grpc-http-proxy"
 	"github.com/mercari/grpc-http-proxy/errors"
 	"github.com/mercari/grpc-http-proxy/internal/testservice"
+	"github.com/mercari/grpc-http-proxy/proxy/reflection"
 )
 
 func TestStub_InvokeRPC(t *testing.T) {
@@ -54,23 +56,23 @@ func TestStub_InvokeRPC(t *testing.T) {
 	time.Sleep(time.Second)
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			serviceDesc := serviceDescriptorFromFileDescriptor(fileDesc, serviceName)
+			serviceDesc := reflection.ServiceDescriptorFromFileDescriptor(fileDesc, serviceName)
 			if serviceDesc == nil {
 				t.Fatal("service descriptor is nil")
 			}
-			methodDesc, err := serviceDesc.findMethodByName(tc.methodName)
+			methodDesc, err := serviceDesc.FindMethodByName(tc.methodName)
 			if err != nil {
 				t.Fatal(err.Error())
 			}
-			inputMsgDesc := methodDesc.getInputType()
-			inputMsg := inputMsgDesc.newMessage()
+			inputMsgDesc := methodDesc.GetInputType()
+			inputMsg := inputMsgDesc.NewMessage()
 			ctx := context.Background()
-			conn, err := newClientConn(ctx, parseURL(t, target))
+			conn, err := grpc.DialContext(ctx, target, grpc.WithInsecure())
 			if err != nil {
 				t.Fatal(err.Error())
 			}
-			stub := newStub(conn)
-			outputMsg, err := stub.invokeRPC(ctx, methodDesc, inputMsg, (*proxy.Metadata)(&map[string][]string{}))
+			stub := NewStub(conn)
+			outputMsg, err := stub.InvokeRPC(ctx, methodDesc, inputMsg, (*proxy.Metadata)(&map[string][]string{}))
 			if err != nil {
 				switch v := err.(type) {
 				case *errors.Error:

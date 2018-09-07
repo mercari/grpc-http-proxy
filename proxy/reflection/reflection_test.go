@@ -1,4 +1,4 @@
-package proxy
+package reflection
 
 import (
 	"context"
@@ -8,6 +8,9 @@ import (
 	"time"
 
 	"github.com/jhump/protoreflect/dynamic"
+	"github.com/jhump/protoreflect/grpcreflect"
+	"google.golang.org/grpc"
+	rpb "google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
 
 	"github.com/mercari/grpc-http-proxy/errors"
 	"github.com/mercari/grpc-http-proxy/internal/testservice"
@@ -48,12 +51,14 @@ func TestReflectionClient_ResolveService(t *testing.T) {
 	time.Sleep(time.Second)
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			cc, err := newClientConn(context.Background(), parseURL(t, "localhost:5000"))
+			ctx := context.Background()
+			cc, err := grpc.DialContext(ctx, "localhost:5000", grpc.WithInsecure())
+
 			if err != nil {
 				t.Fatal(err.Error())
 			}
-			c := newReflectionClient(cc)
-			serviceDesc, err := c.resolveService(context.Background(), tc.serviceName)
+			c := NewReflectionClient(grpcreflect.NewClient(ctx, rpb.NewServerReflectionClient(cc)))
+			serviceDesc, err := c.ResolveService(ctx, tc.serviceName)
 			if got, want := serviceDesc == nil, tc.descIsNil; got != want {
 				t.Fatalf("got %t, want %t", got, want)
 			}
@@ -99,11 +104,11 @@ func TestServiceDescriptor_FindMethodByName(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			fileDesc := newFileDescriptor(t, file)
-			serviceDesc := serviceDescriptorFromFileDescriptor(fileDesc, serviceName)
+			serviceDesc := ServiceDescriptorFromFileDescriptor(fileDesc, serviceName)
 			if serviceDesc == nil {
 				t.Fatalf("service descriptor is nil")
 			}
-			methodDesc, err := serviceDesc.findMethodByName(tc.methodName)
+			methodDesc, err := serviceDesc.FindMethodByName(tc.methodName)
 			if got, want := methodDesc == nil, tc.descIsNil; got != want {
 				t.Fatalf("got %t, want %t", got, want)
 			}
@@ -139,12 +144,12 @@ func TestServiceDescriptor_GetInputType(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			fileDesc := newFileDescriptor(t, file)
-			serviceDesc := serviceDescriptorFromFileDescriptor(fileDesc, serviceName)
-			methodDesc, err := serviceDesc.findMethodByName(tc.methodName)
+			serviceDesc := ServiceDescriptorFromFileDescriptor(fileDesc, serviceName)
+			methodDesc, err := serviceDesc.FindMethodByName(tc.methodName)
 			if err != nil {
 				t.Fatalf(err.Error())
 			}
-			inputMsgDesc := methodDesc.getInputType()
+			inputMsgDesc := methodDesc.GetInputType()
 			if got, want := inputMsgDesc == nil, tc.descIsNil; got != want {
 				t.Fatalf("got %t, want %t", got, want)
 			}
@@ -171,12 +176,12 @@ func TestServiceDescriptor_GetOutputType(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			fileDesc := newFileDescriptor(t, file)
-			serviceDesc := serviceDescriptorFromFileDescriptor(fileDesc, serviceName)
-			methodDesc, err := serviceDesc.findMethodByName(tc.methodName)
+			serviceDesc := ServiceDescriptorFromFileDescriptor(fileDesc, serviceName)
+			methodDesc, err := serviceDesc.FindMethodByName(tc.methodName)
 			if err != nil {
 				t.Fatalf(err.Error())
 			}
-			inputMsgDesc := methodDesc.getOutputType()
+			inputMsgDesc := methodDesc.GetOutputType()
 			if got, want := inputMsgDesc == nil, tc.descIsNil; got != want {
 				t.Fatalf("got %t, want %t", got, want)
 			}
@@ -189,16 +194,16 @@ func TestMessageDescriptor_NewMessage(t *testing.T) {
 	const methodName = "EmptyCall"
 	const file = "grpc_testing/test.proto"
 	fileDesc := newFileDescriptor(t, file)
-	serviceDesc := serviceDescriptorFromFileDescriptor(fileDesc, serviceName)
+	serviceDesc := ServiceDescriptorFromFileDescriptor(fileDesc, serviceName)
 	if serviceDesc == nil {
 		t.Fatal("service descriptor is nil")
 	}
-	methodDesc, err := serviceDesc.findMethodByName(methodName)
+	methodDesc, err := serviceDesc.FindMethodByName(methodName)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	inputMsgDesc := methodDesc.getInputType()
-	inputMsg := inputMsgDesc.newMessage()
+	inputMsgDesc := methodDesc.GetInputType()
+	inputMsg := inputMsgDesc.NewMessage()
 	if got, want := inputMsg == nil, false; got != want {
 		t.Fatalf("got %t, want %t", got, want)
 	}
@@ -225,13 +230,13 @@ func TestMessage_MarshalJSON(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			messageDesc := fileDesc.FindMessage(messageName)
 			if messageDesc == nil {
-				t.Fatal("message descriptor is nil")
+				t.Fatal("MessageImpl descriptor is nil")
 			}
-			message := message{
-				desc: dynamic.NewMessage(messageDesc),
+			message := MessageImpl{
+				message: dynamic.NewMessage(messageDesc),
 			}
-			message.desc.SetField(message.desc.FindFieldDescriptorByName("body"), []byte("hello"))
-			j, err := message.marshalJSON()
+			message.message.SetField(message.message.FindFieldDescriptorByName("body"), []byte("hello"))
+			j, err := message.MarshalJSON()
 			if got, want := j, tc.json; !reflect.DeepEqual(got, want) {
 				t.Fatalf("got %v, want %v", got, want)
 			}
@@ -263,7 +268,7 @@ func TestMessage_UnmarshalJSON(t *testing.T) {
 			json: []byte("{\"body\":\"hello!\""),
 			error: &errors.Error{
 				Code:    errors.MessageTypeMismatch,
-				Message: "input JSON does not match message type",
+				Message: "input JSON does not match MessageImpl type",
 			},
 		},
 	}
@@ -272,12 +277,12 @@ func TestMessage_UnmarshalJSON(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			messageDesc := fileDesc.FindMessage(messageName)
 			if messageDesc == nil {
-				t.Fatal("message descriptor is nil")
+				t.Fatal("MessageImpl descriptor is nil")
 			}
-			message := message{
-				desc: dynamic.NewMessage(messageDesc),
+			message := MessageImpl{
+				message: dynamic.NewMessage(messageDesc),
 			}
-			err := message.unmarshalJSON(tc.json)
+			err := message.UnmarshalJSON(tc.json)
 
 			expectedMessage := dynamic.NewMessage(messageDesc)
 			expectedMessage.SetField(expectedMessage.FindFieldDescriptorByName("body"), []byte("hello!"))
