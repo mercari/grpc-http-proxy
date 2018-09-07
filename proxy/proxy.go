@@ -80,7 +80,11 @@ func (c *Proxy) loadDescriptors(ctx context.Context, serviceName, methodName str
 	if c.err != nil {
 		return
 	}
-	c.methodDescriptor, c.err = c.resolveService(ctx, serviceName).FindMethodByName(methodName)
+	s := c.resolveService(ctx, serviceName)
+	if c.err != nil {
+		return
+	}
+	c.methodDescriptor, c.err = s.FindMethodByName(methodName)
 }
 
 func (c *Proxy) createMessages() {
