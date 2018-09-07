@@ -21,9 +21,8 @@ import (
 )
 
 const (
-	// TODO(tomoyat1) change annotation names
-	serviceNameAnnotationKey    = "proto-service"
-	backendVersionAnnotationKey = "backend-version"
+	serviceNameAnnotationKey    = "grpc-http-proxy.alpha.mercari.com/proto-service"
+	backendVersionAnnotationKey = "grpc-http-proxy.alpha.mercari.com/backend-version"
 )
 
 // Service watches the Kubernetes API and updates records when there are changes to Service resources
