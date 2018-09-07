@@ -119,8 +119,8 @@ func (m *methodDescriptorImpl) GetOutputType() MessageDescriptor {
 	}
 }
 
-func (s *methodDescriptorImpl) AsProtoreflectDescriptor() *desc.MethodDescriptor {
-	d, ok := s.desc.(*desc.MethodDescriptor)
+func (m *methodDescriptorImpl) AsProtoreflectDescriptor() *desc.MethodDescriptor {
+	d, ok := m.desc.(*desc.MethodDescriptor)
 	if !ok {
 		return &desc.MethodDescriptor{}
 	}

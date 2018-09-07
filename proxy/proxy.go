@@ -28,8 +28,8 @@ type Proxy struct {
 }
 
 // Err returns the error that Proxy aborted on
-func (c *Proxy) Err() error {
-	return c.err
+func (p *Proxy) Err() error {
+	return p.err
 }
 
 // NewProxy creates a new client
@@ -40,110 +40,110 @@ func NewProxy(l *zap.Logger) *Proxy {
 }
 
 // Connect opens a connection to target
-func (c *Proxy) Connect(ctx context.Context, target *url.URL) {
-	if c.err != nil {
+func (p *Proxy) Connect(ctx context.Context, target *url.URL) {
+	if p.err != nil {
 		return
 	}
 	cc, err := grpc.DialContext(ctx, target.String(), grpc.WithInsecure())
-	c.cc = cc
-	c.err = err
+	p.cc = cc
+	p.err = err
 	return
 }
 
 // CloseConn closes the underlying connection
-func (c *Proxy) CloseConn() {
-	if c.err != nil {
+func (p *Proxy) CloseConn() {
+	if p.err != nil {
 		return
 	}
-	c.err = c.cc.Close()
+	p.err = p.cc.Close()
 	return
 }
 
-func (c *Proxy) newReflectionClient(ctx context.Context) {
-	if c.err != nil {
+func (p *Proxy) newReflectionClient(ctx context.Context) {
+	if p.err != nil {
 		return
 	}
-	rc := grpcreflect.NewClient(ctx, rpb.NewServerReflectionClient(c.cc))
-	c.reflectionClient = reflection.NewReflectionClient(rc)
+	rc := grpcreflect.NewClient(ctx, rpb.NewServerReflectionClient(p.cc))
+	p.reflectionClient = reflection.NewReflectionClient(rc)
 }
 
-func (c *Proxy) resolveService(ctx context.Context, serviceName string) reflection.ServiceDescriptor {
-	if c.err != nil {
+func (p *Proxy) resolveService(ctx context.Context, serviceName string) reflection.ServiceDescriptor {
+	if p.err != nil {
 		return nil
 	}
-	sd, err := c.reflectionClient.ResolveService(ctx, serviceName)
-	c.err = err
+	sd, err := p.reflectionClient.ResolveService(ctx, serviceName)
+	p.err = err
 	return sd
 }
 
-func (c *Proxy) loadDescriptors(ctx context.Context, serviceName, methodName string) {
-	if c.err != nil {
+func (p *Proxy) loadDescriptors(ctx context.Context, serviceName, methodName string) {
+	if p.err != nil {
 		return
 	}
-	s := c.resolveService(ctx, serviceName)
-	if c.err != nil {
+	s := p.resolveService(ctx, serviceName)
+	if p.err != nil {
 		return
 	}
-	c.methodDescriptor, c.err = s.FindMethodByName(methodName)
+	p.methodDescriptor, p.err = s.FindMethodByName(methodName)
 }
 
-func (c *Proxy) createMessages() {
-	if c.err != nil {
+func (p *Proxy) createMessages() {
+	if p.err != nil {
 		return
 	}
-	c.InputMessage = c.methodDescriptor.GetInputType().NewMessage()
-	c.OutputMessage = c.methodDescriptor.GetOutputType().NewMessage()
+	p.InputMessage = p.methodDescriptor.GetInputType().NewMessage()
+	p.OutputMessage = p.methodDescriptor.GetOutputType().NewMessage()
 }
 
-func (c *Proxy) unmarshalInputMessage(b []byte) {
-	if c.err != nil {
+func (p *Proxy) unmarshalInputMessage(b []byte) {
+	if p.err != nil {
 		return
 	}
-	err := c.InputMessage.UnmarshalJSON(b)
-	c.err = err
+	err := p.InputMessage.UnmarshalJSON(b)
+	p.err = err
 	return
 }
 
-func (c *Proxy) marshalOutputMessage() proxy.GRPCResponse {
-	if c.err != nil {
+func (p *Proxy) marshalOutputMessage() proxy.GRPCResponse {
+	if p.err != nil {
 		return nil
 	}
-	b, err := c.OutputMessage.MarshalJSON()
-	c.err = err
+	b, err := p.OutputMessage.MarshalJSON()
+	p.err = err
 	return b
 }
 
-func (c *Proxy) newStub() {
-	if c.err != nil {
+func (p *Proxy) newStub() {
+	if p.err != nil {
 		return
 	}
-	c.stub = pstub.NewStub(c.cc)
+	p.stub = pstub.NewStub(p.cc)
 	return
 }
 
-func (c *Proxy) invokeRPC(ctx context.Context, md *proxy.Metadata) {
-	if c.err != nil {
+func (p *Proxy) invokeRPC(ctx context.Context, md *proxy.Metadata) {
+	if p.err != nil {
 		return
 	}
-	m, err := c.stub.InvokeRPC(ctx, c.methodDescriptor, c.InputMessage, md)
-	c.err = err
-	c.OutputMessage = m
+	m, err := p.stub.InvokeRPC(ctx, p.methodDescriptor, p.InputMessage, md)
+	p.err = err
+	p.OutputMessage = m
 	return
 }
 
 // Call performs the gRPC call after doing reflection to obtain type information
-func (c *Proxy) Call(ctx context.Context,
+func (p *Proxy) Call(ctx context.Context,
 	serviceName, methodName string,
 	message []byte,
 	md *proxy.Metadata,
 ) (proxy.GRPCResponse, error) {
 
-	c.newReflectionClient(ctx)
-	c.loadDescriptors(ctx, serviceName, methodName)
-	c.createMessages()
-	c.unmarshalInputMessage(message)
-	c.newStub()
-	c.invokeRPC(ctx, md)
-	response := c.marshalOutputMessage()
-	return response, c.err
+	p.newReflectionClient(ctx)
+	p.loadDescriptors(ctx, serviceName, methodName)
+	p.createMessages()
+	p.unmarshalInputMessage(message)
+	p.newStub()
+	p.invokeRPC(ctx, md)
+	response := p.marshalOutputMessage()
+	return response, p.err
 }
