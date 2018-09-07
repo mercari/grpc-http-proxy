@@ -30,14 +30,13 @@ func (c *Proxy) Err() error {
 // NewProxy creates a new client
 func NewProxy(l *zap.Logger) *Proxy {
 	return &Proxy{
-		logger:            l,
-		clientConn:        &clientConn{},
-		reflectionClient:  &reflectionClient{},
-		serviceDescriptor: &serviceDescriptor{},
-		methodDescriptor:  &methodDescriptor{},
-		InputMessage:      &message{},
-		OutputMessage:     &message{},
-		stub:              &stub{},
+		logger:           l,
+		clientConn:       &clientConn{},
+		reflectionClient: &reflectionClient{},
+		methodDescriptor: &methodDescriptor{},
+		InputMessage:     &message{},
+		OutputMessage:    &message{},
+		stub:             &stub{},
 	}
 }
 
@@ -69,32 +68,21 @@ func (c *Proxy) newReflectionClient() {
 	return
 }
 
-func (c *Proxy) resolveService(ctx context.Context, serviceName string) {
+func (c *Proxy) resolveService(ctx context.Context, serviceName string) *serviceDescriptor {
 	c.newReflectionClient()
 	if c.err != nil {
-		return
+		return nil
 	}
 	sd, err := c.reflectionClient.resolveService(ctx, serviceName)
 	c.err = err
-	c.serviceDescriptor = sd
-}
-
-func (c *Proxy) findMethodByName(name string) {
-	if c.err != nil {
-		return
-	}
-	md, err := c.serviceDescriptor.findMethodByName(name)
-	c.err = err
-	c.methodDescriptor = md
-	return
+	return sd
 }
 
 func (c *Proxy) loadDescriptors(ctx context.Context, serviceName, methodName string) {
 	if c.err != nil {
 		return
 	}
-	c.resolveService(ctx, serviceName)
-	c.findMethodByName(methodName)
+	c.methodDescriptor, c.err = c.resolveService(ctx, serviceName).findMethodByName(methodName)
 	if c.err != nil {
 		return
 	}
