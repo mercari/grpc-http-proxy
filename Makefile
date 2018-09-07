@@ -10,7 +10,7 @@ dep:
 	@dep ensure -v
 
 .PHONY: generate
-generate:
+generate: devel-deps
 	@go generate ./...
 
 .PHONY: test
