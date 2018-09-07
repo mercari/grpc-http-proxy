@@ -13,6 +13,12 @@ import (
 	"github.com/mercari/grpc-http-proxy/errors"
 )
 
+// ReflectionClient performs reflection to obtain descriptors
+type ReflectionClient interface {
+	// ResolveService gets the service descriptor from the service the client is connected to
+	ResolveService(ctx context.Context, serviceName string) (ServiceDescriptor, error)
+}
+
 type reflectionClientImpl struct {
 	grpcdynamicClient
 }
@@ -21,13 +27,13 @@ type grpcdynamicClient interface {
 	ResolveService(serviceName string) (*desc.ServiceDescriptor, error)
 }
 
-func NewReflectionClient(rc grpcdynamicClient) *reflectionClientImpl {
+// NewReflectionClient creates a new ReflectionClient
+func NewReflectionClient(rc grpcdynamicClient) ReflectionClient {
 	return &reflectionClientImpl{
 		grpcdynamicClient: rc,
 	}
 }
 
-// ResolveService gets the service descriptor from the service the client is connected to
 func (c *reflectionClientImpl) ResolveService(ctx context.Context,
 	serviceName string) (ServiceDescriptor, error) {
 	d, err := c.grpcdynamicClient.ResolveService(serviceName)
@@ -37,33 +43,38 @@ func (c *reflectionClientImpl) ResolveService(ctx context.Context,
 			Message: fmt.Sprintf("service %s was not found upstream", serviceName),
 		}
 	}
-	return &ServiceDescriptorImpl{
+	return &serviceDescriptorImpl{
 		desc: d,
 	}, nil
 }
 
-// ServiceDescriptorImpl represents a service type
-type ServiceDescriptorImpl struct {
+// ServiceDescriptor represents a service type
+type ServiceDescriptor interface {
+	// FindMethodByName finds the method descriptor with the name
+	FindMethodByName(name string) (MethodDescriptor, error)
+}
+type serviceDescriptorImpl struct {
 	desc serviceDescriptor
 }
 
-// serviceDescriptor is the interface for message.ServiceDescriptorImpl
+// serviceDescriptor is the interface for message.serviceDescriptorImpl
 type serviceDescriptor interface {
 	FindMethodByName(name string) *desc.MethodDescriptor
 }
 
-func ServiceDescriptorFromFileDescriptor(fd *desc.FileDescriptor, service string) *ServiceDescriptorImpl {
+// ServiceDescriptorFromFileDescriptor finds the service descriptor from a file descriptor
+// This can be useful in tests that don't connect to a real server
+func ServiceDescriptorFromFileDescriptor(fd *desc.FileDescriptor, service string) ServiceDescriptor {
 	d := fd.FindService(service)
 	if d == nil {
 		return nil
 	}
-	return &ServiceDescriptorImpl{
+	return &serviceDescriptorImpl{
 		desc: d,
 	}
 }
 
-// FindMethodByName finds the method descriptor with the name
-func (s *ServiceDescriptorImpl) FindMethodByName(name string) (MethodDescriptor, error) {
+func (s *serviceDescriptorImpl) FindMethodByName(name string) (MethodDescriptor, error) {
 	d := s.desc.FindMethodByName(name)
 	if d == nil {
 		return nil, &errors.Error{
@@ -76,7 +87,16 @@ func (s *ServiceDescriptorImpl) FindMethodByName(name string) (MethodDescriptor,
 	}, nil
 }
 
-// methodDescriptorImpl represents a method type
+// MethodDescriptor represents a method type
+type MethodDescriptor interface {
+	// GetInputType gets the messageImpl descriptor for the input type for the method
+	GetInputType() MessageDescriptor
+	// GetOutputType gets the messageImpl descriptor for the output type for the method
+	GetOutputType() MessageDescriptor
+	// AsProtoreflectDescriptor returns the underlying protoreflect method descriptor
+	AsProtoreflectDescriptor() *desc.MethodDescriptor
+}
+
 type methodDescriptorImpl struct {
 	desc methodDescriptor
 }
@@ -87,16 +107,14 @@ type methodDescriptor interface {
 	GetOutputType() *desc.MessageDescriptor
 }
 
-// GetInputType gets the MessageImpl descriptor for the input type for the method
 func (m *methodDescriptorImpl) GetInputType() MessageDescriptor {
-	return &MessageDescriptorImpl{
+	return &messageDescriptorImpl{
 		desc: m.desc.GetInputType(),
 	}
 }
 
-// GetOutputType gets the MessageImpl descriptor for the output type for the method
 func (m *methodDescriptorImpl) GetOutputType() MessageDescriptor {
-	return &MessageDescriptorImpl{
+	return &messageDescriptorImpl{
 		desc: m.desc.GetOutputType(),
 	}
 }
@@ -109,24 +127,39 @@ func (s *methodDescriptorImpl) AsProtoreflectDescriptor() *desc.MethodDescriptor
 	return d
 }
 
-// MessageDescriptorImpl represents a MessageImpl type
-type MessageDescriptorImpl struct {
+// MessageDescriptor represents a message type
+type MessageDescriptor interface {
+	// NewMessage creates a new messageImpl from the receiver
+	NewMessage() Message
+}
+
+type messageDescriptorImpl struct {
 	desc *desc.MessageDescriptor
 }
 
-// NewMessage creates a new MessageImpl from the receiver
-func (m *MessageDescriptorImpl) NewMessage() Message {
-	return &MessageImpl{
+func (m *messageDescriptorImpl) NewMessage() Message {
+	return &messageImpl{
 		message: dynamic.NewMessage(m.desc),
 	}
 }
 
-// MessageImpl is an MessageImpl value
-type MessageImpl struct {
+// Message is an message value
+type Message interface {
+	// MarshalJSON marshals the Message into JSON
+	MarshalJSON() ([]byte, error)
+	// UnmarshalJSON unmarshals JSON into a Message
+	UnmarshalJSON(b []byte) error
+	// ConvertFrom converts a raw protobuf message into a Message
+	ConvertFrom(target proto.Message) error
+	// AsProtoreflectMessage returns the underlying protoreflect message
+	AsProtoreflectMessage() *dynamic.Message
+}
+
+type messageImpl struct {
 	message
 }
 
-// message is an interface for dynamic.MessageImpl
+// message is an interface for dynamic.messageImpl
 type message interface {
 	MarshalJSON() ([]byte, error)
 	UnmarshalJSON([]byte) error
@@ -135,7 +168,7 @@ type message interface {
 	FindFieldDescriptorByName(name string) *desc.FieldDescriptor
 }
 
-func (m *MessageImpl) MarshalJSON() ([]byte, error) {
+func (m *messageImpl) MarshalJSON() ([]byte, error) {
 	b, err := m.message.MarshalJSON()
 	if err != nil {
 		return nil, &errors.Error{
@@ -146,51 +179,25 @@ func (m *MessageImpl) MarshalJSON() ([]byte, error) {
 	return b, nil
 }
 
-func (m *MessageImpl) UnmarshalJSON(b []byte) error {
+func (m *messageImpl) UnmarshalJSON(b []byte) error {
 	err := m.message.UnmarshalJSON(b)
 	if err != nil {
 		return &errors.Error{
 			Code:    errors.MessageTypeMismatch,
-			Message: "input JSON does not match MessageImpl type",
+			Message: "input JSON does not match messageImpl type",
 		}
 	}
 	return nil
 }
 
-func (m *MessageImpl) ConvertFrom(target proto.Message) error {
+func (m *messageImpl) ConvertFrom(target proto.Message) error {
 	return m.message.ConvertFrom(target)
 }
 
-func (m *MessageImpl) AsProtoreflectMessage() *dynamic.Message {
+func (m *messageImpl) AsProtoreflectMessage() *dynamic.Message {
 	msg, ok := m.message.(*dynamic.Message)
 	if !ok {
 		return &dynamic.Message{}
 	}
 	return msg
-}
-
-// ReflectionClient performs reflection to obtain descriptors
-type ReflectionClient interface {
-	ResolveService(ctx context.Context, serviceName string) (ServiceDescriptor, error)
-}
-
-type ServiceDescriptor interface {
-	FindMethodByName(name string) (MethodDescriptor, error)
-}
-
-type MethodDescriptor interface {
-	GetInputType() MessageDescriptor
-	GetOutputType() MessageDescriptor
-	AsProtoreflectDescriptor() *desc.MethodDescriptor
-}
-
-type MessageDescriptor interface {
-	NewMessage() Message
-}
-
-type Message interface {
-	MarshalJSON() ([]byte, error)
-	UnmarshalJSON(b []byte) error
-	ConvertFrom(target proto.Message) error
-	AsProtoreflectMessage() *dynamic.Message
 }

@@ -32,7 +32,8 @@ type stubImpl struct {
 	stub grpcdynamic.Stub
 }
 
-func NewStub(cc *grpc.ClientConn) *stubImpl {
+// NewStub creates a new Stub with the passed connection
+func NewStub(cc *grpc.ClientConn) Stub {
 	s := grpcdynamic.NewStub(cc)
 	return &stubImpl{
 		stub: s,

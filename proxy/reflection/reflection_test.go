@@ -230,9 +230,9 @@ func TestMessage_MarshalJSON(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			messageDesc := fileDesc.FindMessage(messageName)
 			if messageDesc == nil {
-				t.Fatal("MessageImpl descriptor is nil")
+				t.Fatal("messageImpl descriptor is nil")
 			}
-			message := MessageImpl{
+			message := messageImpl{
 				message: dynamic.NewMessage(messageDesc),
 			}
 			message.message.SetField(message.message.FindFieldDescriptorByName("body"), []byte("hello"))
@@ -268,7 +268,7 @@ func TestMessage_UnmarshalJSON(t *testing.T) {
 			json: []byte("{\"body\":\"hello!\""),
 			error: &errors.Error{
 				Code:    errors.MessageTypeMismatch,
-				Message: "input JSON does not match MessageImpl type",
+				Message: "input JSON does not match messageImpl type",
 			},
 		},
 	}
@@ -277,9 +277,9 @@ func TestMessage_UnmarshalJSON(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			messageDesc := fileDesc.FindMessage(messageName)
 			if messageDesc == nil {
-				t.Fatal("MessageImpl descriptor is nil")
+				t.Fatal("messageImpl descriptor is nil")
 			}
-			message := MessageImpl{
+			message := messageImpl{
 				message: dynamic.NewMessage(messageDesc),
 			}
 			err := message.UnmarshalJSON(tc.json)
