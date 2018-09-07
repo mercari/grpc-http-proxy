@@ -5,23 +5,32 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
-	"time"
 
+	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/dynamic"
-	"github.com/jhump/protoreflect/grpcreflect"
-	"google.golang.org/grpc"
-	rpb "google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
+	"github.com/pkg/errors"
+	_ "google.golang.org/grpc/test/grpc_testing"
 
-	"github.com/mercari/grpc-http-proxy/errors"
-	"github.com/mercari/grpc-http-proxy/internal/testservice"
+	perrors "github.com/mercari/grpc-http-proxy/errors"
 )
+
+type mockGrpcreflectClient struct {
+}
+
+func (m *mockGrpcreflectClient) ResolveService(serviceName string) (*desc.ServiceDescriptor, error) {
+	if serviceName == "not.found.NoService" {
+		return nil, errors.Errorf("service not found")
+	}
+	return &desc.ServiceDescriptor{}, nil
+
+}
 
 func TestReflectionClient_ResolveService(t *testing.T) {
 	cases := []struct {
 		name        string
 		serviceName string
 		descIsNil   bool
-		error       *errors.Error
+		error       *perrors.Error
 	}{
 		{
 			name:        "found",
@@ -33,37 +42,22 @@ func TestReflectionClient_ResolveService(t *testing.T) {
 			name:        "not found",
 			serviceName: "not.found.NoService",
 			descIsNil:   true,
-			error: &errors.Error{
-				Code:    errors.ServiceNotFound,
+			error: &perrors.Error{
+				Code:    perrors.ServiceNotFound,
 				Message: fmt.Sprintf("service %s was not found upstream", "not.found.NoService"),
 			},
 		},
 	}
-	stopCh := make(chan struct{})
-	defer func() { stopCh <- struct{}{} }()
-	go func() {
-		t.Log("starting test service")
-		err := testservice.StartTestService(stopCh)
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-	}()
-	time.Sleep(time.Second)
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := context.Background()
-			cc, err := grpc.DialContext(ctx, "localhost:5000", grpc.WithInsecure())
-
-			if err != nil {
-				t.Fatal(err.Error())
-			}
-			c := NewReflectionClient(grpcreflect.NewClient(ctx, rpb.NewServerReflectionClient(cc)))
+			c := NewReflectionClient(&mockGrpcreflectClient{})
 			serviceDesc, err := c.ResolveService(ctx, tc.serviceName)
 			if got, want := serviceDesc == nil, tc.descIsNil; got != want {
 				t.Fatalf("got %t, want %t", got, want)
 			}
 			{
-				err, ok := err.(*errors.Error)
+				err, ok := err.(*perrors.Error)
 				if !ok {
 					err = nil
 				}
@@ -83,7 +77,7 @@ func TestServiceDescriptor_FindMethodByName(t *testing.T) {
 		serviceName string
 		methodName  string
 		descIsNil   bool
-		error       *errors.Error
+		error       *perrors.Error
 	}{
 		{
 			name:       "method found",
@@ -95,8 +89,8 @@ func TestServiceDescriptor_FindMethodByName(t *testing.T) {
 			name:       "method not found",
 			methodName: "ThisMethodDoesNotExist",
 			descIsNil:  true,
-			error: &errors.Error{
-				Code:    errors.MethodNotFound,
+			error: &perrors.Error{
+				Code:    perrors.MethodNotFound,
 				Message: fmt.Sprintf("the method %s was not found", "ThisMethodDoesNotExist"),
 			},
 		},
@@ -113,7 +107,7 @@ func TestServiceDescriptor_FindMethodByName(t *testing.T) {
 				t.Fatalf("got %t, want %t", got, want)
 			}
 			{
-				err, ok := err.(*errors.Error)
+				err, ok := err.(*perrors.Error)
 				if !ok {
 					err = nil
 				}
@@ -266,8 +260,8 @@ func TestMessage_UnmarshalJSON(t *testing.T) {
 		{
 			name: "type mismatch",
 			json: []byte("{\"body\":\"hello!\""),
-			error: &errors.Error{
-				Code:    errors.MessageTypeMismatch,
+			error: &perrors.Error{
+				Code:    perrors.MessageTypeMismatch,
 				Message: "input JSON does not match messageImpl type",
 			},
 		},
