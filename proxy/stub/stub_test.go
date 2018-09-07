@@ -4,17 +4,29 @@ import (
 	"context"
 	"reflect"
 	"testing"
-	"time"
 
+	"github.com/golang/protobuf/proto"
+	"github.com/jhump/protoreflect/desc"
+	"github.com/jhump/protoreflect/dynamic"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	_ "google.golang.org/grpc/test/grpc_testing"
 
 	"github.com/mercari/grpc-http-proxy"
 	"github.com/mercari/grpc-http-proxy/errors"
-	"github.com/mercari/grpc-http-proxy/internal/testservice"
 	"github.com/mercari/grpc-http-proxy/proxy/reflection"
 )
+
+type mockGrpcdynamicStub struct{}
+
+func (m *mockGrpcdynamicStub) InvokeRpc(ctx context.Context, method *desc.MethodDescriptor, request proto.Message, opts ...grpc.CallOption) (proto.Message, error) {
+	if method.GetName() == "UnaryCall" {
+		return nil, status.Error(codes.Unimplemented, "unary unimplemented")
+	}
+	output := dynamic.NewMessage(method.GetOutputType())
+	return output, nil
+}
 
 func TestStub_InvokeRPC(t *testing.T) {
 	cases := []struct {
@@ -44,16 +56,6 @@ func TestStub_InvokeRPC(t *testing.T) {
 	const serviceName = "grpc.testing.TestService"
 	fileDesc := newFileDescriptor(t, fileName)
 
-	stopCh := make(chan struct{})
-	defer func() { stopCh <- struct{}{} }()
-	go func() {
-		t.Log("starting test service")
-		err := testservice.StartTestService(stopCh)
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-	}()
-	time.Sleep(time.Second)
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			serviceDesc := reflection.ServiceDescriptorFromFileDescriptor(fileDesc, serviceName)
@@ -67,11 +69,10 @@ func TestStub_InvokeRPC(t *testing.T) {
 			inputMsgDesc := methodDesc.GetInputType()
 			inputMsg := inputMsgDesc.NewMessage()
 			ctx := context.Background()
-			conn, err := grpc.DialContext(ctx, target, grpc.WithInsecure())
-			if err != nil {
-				t.Fatal(err.Error())
+
+			stub := &stubImpl{
+				stub: &mockGrpcdynamicStub{},
 			}
-			stub := NewStub(conn)
 			outputMsg, err := stub.InvokeRPC(ctx, methodDesc, inputMsg, (*proxy.Metadata)(&map[string][]string{}))
 			if err != nil {
 				switch v := err.(type) {
@@ -83,7 +84,7 @@ func TestStub_InvokeRPC(t *testing.T) {
 				case *errors.GRPCError:
 					expected := tc.error.(*errors.GRPCError)
 					if got, want := v, expected; !reflect.DeepEqual(got, want) {
-						t.Fatalf("got %v, want %v", got, want)
+						t.Fatalf("got %#v, want %#v", got, want)
 					}
 				}
 			}

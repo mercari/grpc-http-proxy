@@ -6,6 +6,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/golang/protobuf/proto"
+	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/dynamic/grpcdynamic"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -29,14 +31,18 @@ type Stub interface {
 }
 
 type stubImpl struct {
-	stub grpcdynamic.Stub
+	stub grpcdynamicStub
+}
+
+type grpcdynamicStub interface {
+	InvokeRpc(ctx context.Context, method *desc.MethodDescriptor, request proto.Message, opts ...grpc.CallOption) (proto.Message, error)
 }
 
 // NewStub creates a new Stub with the passed connection
 func NewStub(cc *grpc.ClientConn) Stub {
 	s := grpcdynamic.NewStub(cc)
 	return &stubImpl{
-		stub: s,
+		stub: &s,
 	}
 }
 
