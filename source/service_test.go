@@ -148,7 +148,7 @@ func TestServiceAdded(t *testing.T) {
 			map[string]string{
 
 				serviceNameAnnotationKey:    "Echo",
-				backendVersionAnnotationKey: "v1",
+				serviceVersionAnnotationKey: "v1",
 			},
 			[]core.ServicePort{
 				{
@@ -171,7 +171,7 @@ func TestServiceAdded(t *testing.T) {
 			map[string]string{
 
 				serviceNameAnnotationKey:    "Echo",
-				backendVersionAnnotationKey: "v2",
+				serviceVersionAnnotationKey: "v2",
 			},
 			[]core.ServicePort{
 				{
@@ -276,7 +276,7 @@ func TestServiceDeleted(t *testing.T) {
 			map[string]string{
 
 				serviceNameAnnotationKey:    "Echo",
-				backendVersionAnnotationKey: "v1",
+				serviceVersionAnnotationKey: "v1",
 			},
 			[]core.ServicePort{
 				{
@@ -486,7 +486,7 @@ func TestServiceUpdated(t *testing.T) {
 			"bar-ns",
 			map[string]string{
 				serviceNameAnnotationKey:    "Echo",
-				backendVersionAnnotationKey: "v1",
+				serviceVersionAnnotationKey: "v1",
 			},
 			[]core.ServicePort{
 				{
@@ -540,7 +540,7 @@ func TestServiceUpdated(t *testing.T) {
 			"bar-ns",
 			map[string]string{
 				serviceNameAnnotationKey:    "Echo",
-				backendVersionAnnotationKey: "v1",
+				serviceVersionAnnotationKey: "v1",
 			},
 			[]core.ServicePort{
 				{
@@ -557,7 +557,7 @@ func TestServiceUpdated(t *testing.T) {
 		waitForService(f.client, fooSvc.Namespace, fooSvc.Name)
 
 		// change foo-service version to v2
-		fooSvc.Annotations[backendVersionAnnotationKey] = "v2"
+		fooSvc.Annotations[serviceVersionAnnotationKey] = "v2"
 		_, err = f.client.Core().Services(fooSvc.Namespace).Update(fooSvc)
 		if err != nil {
 			t.Fatal(err)
@@ -631,7 +631,7 @@ func TestServiceUpdated(t *testing.T) {
 		waitForService(f.client, fooV2.Namespace, fooV2.Name)
 
 		// add version annotation to v2 of foo-service
-		fooV2.Annotations[backendVersionAnnotationKey] = "v2"
+		fooV2.Annotations[serviceVersionAnnotationKey] = "v2"
 		_, err = f.client.Core().Services(fooV2.Namespace).Update(fooV2)
 		if err != nil {
 			t.Fatal(err)
@@ -678,7 +678,7 @@ func TestServiceUpdated(t *testing.T) {
 		// add gRPC service annotation
 		fooSvc.Annotations[serviceNameAnnotationKey] = "Echo"
 		// add version annotation
-		fooSvc.Annotations[backendVersionAnnotationKey] = "v1"
+		fooSvc.Annotations[serviceVersionAnnotationKey] = "v1"
 		_, err = f.client.Core().Services(fooSvc.Namespace).Update(fooSvc)
 		if err != nil {
 			t.Fatal(err)
@@ -709,7 +709,7 @@ func TestServiceUpdated(t *testing.T) {
 			"bar-ns",
 			map[string]string{
 				serviceNameAnnotationKey:    "Echo",
-				backendVersionAnnotationKey: "v1",
+				serviceVersionAnnotationKey: "v1",
 			},
 			[]core.ServicePort{
 				{
@@ -728,7 +728,7 @@ func TestServiceUpdated(t *testing.T) {
 		// remove gRPC service annotation
 		delete(fooSvc.Annotations, serviceNameAnnotationKey)
 		// remove version annotation
-		delete(fooSvc.Annotations, backendVersionAnnotationKey)
+		delete(fooSvc.Annotations, serviceVersionAnnotationKey)
 		_, err = f.client.Core().Services(fooSvc.Namespace).Update(fooSvc)
 		if err != nil {
 			t.Fatal(err)

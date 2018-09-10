@@ -11,8 +11,8 @@ type Error struct {
 type Code int
 
 const (
-	// BackendConnFailure represents failure to connect to the upstream gRPC service
-	BackendConnFailure Code = 2
+	// UpstreamConnFailure represents failure to connect to the upstream gRPC service
+	UpstreamConnFailure Code = 2
 	// ServiceUnresolvable represents failure to resolve a gRPC service to its upstream FQDN
 	ServiceUnresolvable Code = 3
 	// ServiceNotFound represents a missing gRPC service in an upstream, even though the service resolved to that upstream
@@ -31,7 +31,7 @@ const (
 
 func (e *Error) Error() string {
 	switch e.Code {
-	case BackendConnFailure:
+	case UpstreamConnFailure:
 		return "could not connect to backend gRPC service"
 	case ServiceUnresolvable:
 		return "could not resolve service"
