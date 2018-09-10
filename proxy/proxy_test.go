@@ -168,4 +168,43 @@ func TestProxy_Call(t *testing.T) {
 
 		p.Call(ctx, testService, method, []byte("message body"), &md)
 	})
+
+	t.Run("marshaling failed", func(t *testing.T) {
+		p := NewProxy(log.NewDiscard())
+		ctx := context.Background()
+		md := make(proxy.Metadata)
+
+		ctrl, ctx := gomock.WithContext(context.Background(), t)
+		defer ctrl.Finish()
+		rc := mock_reflection.NewMockReflectionClient(ctrl)
+		mockSvcDesc := mock_reflection.NewMockServiceDescriptor(ctrl)
+		p.reflectionClient = rc
+		rc.EXPECT().ResolveService(ctx, testService).
+			Return(mockSvcDesc, nil)
+
+		mockMethodDesc := mock_reflection.NewMockMethodDescriptor(ctrl)
+		mockSvcDesc.EXPECT().FindMethodByName(method).
+			Return(mockMethodDesc, error(nil))
+
+		mockInputMsgDesc := mock_reflection.NewMockMessageDescriptor(ctrl)
+		mockMethodDesc.EXPECT().GetInputType().
+			Return(mockInputMsgDesc)
+		mockInputMsg := mock_reflection.NewMockMessage(ctrl)
+		mockOutputMsg := mock_reflection.NewMockMessage(ctrl)
+		mockInputMsgDesc.EXPECT().NewMessage().
+			Return(mockInputMsg)
+
+		mockInputMsg.EXPECT().UnmarshalJSON([]byte("message body")).
+			Return(error(nil))
+
+		mockOutputMsg.EXPECT().MarshalJSON().
+			Return(nil, testError)
+
+		mockStub := mock_stub.NewMockStub(ctrl)
+		p.stub = mockStub
+		mockStub.EXPECT().InvokeRPC(ctx, mockMethodDesc, mockInputMsg, &md).
+			Return(mockOutputMsg, error(nil))
+
+		p.Call(ctx, testService, method, []byte("message body"), &md)
+	})
 }

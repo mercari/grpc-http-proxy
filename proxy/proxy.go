@@ -53,11 +53,18 @@ func (p *Proxy) Call(ctx context.Context,
 ) (proxy.GRPCResponse, error) {
 	serviceDesc, err := p.reflectionClient.ResolveService(ctx, serviceName)
 	if err != nil {
+		p.logger.Error("service was not found upstream",
+			zap.String("service", serviceName),
+		)
 		return nil, err
 	}
 
 	methodDesc, err := serviceDesc.FindMethodByName(methodName)
 	if err != nil {
+		p.logger.Error("method was not found in service",
+			zap.String("service", serviceName),
+			zap.String("method", methodName),
+		)
 		return nil, err
 	}
 
@@ -65,6 +72,9 @@ func (p *Proxy) Call(ctx context.Context,
 
 	err = inputMsg.UnmarshalJSON(message)
 	if err != nil {
+		p.logger.Error("failed to unmarshal input JSON",
+			zap.String("err", err.Error()),
+		)
 		return nil, err
 	}
 
@@ -72,5 +82,12 @@ func (p *Proxy) Call(ctx context.Context,
 	if err != nil {
 		return nil, err
 	}
-	return outputMsg.MarshalJSON()
+	m, err := outputMsg.MarshalJSON()
+	if err != nil {
+		p.logger.Error("failed to marshal output to JSON",
+			zap.String("err", err.Error()),
+		)
+		return nil, err
+	}
+	return m, err
 }
