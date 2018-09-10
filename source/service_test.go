@@ -9,6 +9,7 @@ import (
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"
 	core "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -69,10 +70,29 @@ func newService(name, namespace string, annotations map[string]string, ports []c
 func waitForService(c kubernetes.Interface, namespace, name string) error {
 	return wait.PollImmediate(1*time.Second, time.Minute*2, func() (bool, error) {
 		svc, err := c.CoreV1().Services(namespace).Get(name, metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			return false, nil
+		}
 		if err != nil {
 			return false, err
 		}
 		if svc != nil {
+			return true, nil
+		}
+		return false, nil
+	})
+}
+
+func waitForNoService(c kubernetes.Interface, namespace, name string) error {
+	return wait.PollImmediate(1*time.Second, time.Minute*2, func() (bool, error) {
+		svc, err := c.CoreV1().Services(namespace).Get(name, metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			return true, nil
+		}
+		if err != nil {
+			return false, err
+		}
+		if svc == nil {
 			return true, nil
 		}
 		return false, nil
@@ -91,6 +111,7 @@ func checkRecords(t *testing.T, k *Service, cases []testCase) {
 	for _, tc := range cases {
 		u, err := k.Resolve(tc.service, tc.version)
 		if got, want := u, tc.url; !reflect.DeepEqual(got, want) {
+			t.Errorf("%#v", err)
 			t.Fatalf("got %v, want %v", got, want)
 		}
 		switch e := err.(type) {
@@ -111,7 +132,6 @@ func checkRecords(t *testing.T, k *Service, cases []testCase) {
 
 func TestServiceAdded(t *testing.T) {
 	t.Run("create versioned services", func(t *testing.T) {
-		t.Parallel()
 		cases := []testCase{
 			{
 				service: "Echo",
@@ -129,6 +149,7 @@ func TestServiceAdded(t *testing.T) {
 		f := newFixture(t)
 		k := f.newKubernetes()
 		stopCh := make(chan struct{})
+		defer func() { stopCh <- struct{}{} }()
 		k.Run(stopCh)
 		time.Sleep(2 * time.Second)
 
@@ -182,7 +203,6 @@ func TestServiceAdded(t *testing.T) {
 	})
 
 	t.Run("create unversioned services", func(t *testing.T) {
-		t.Parallel()
 		cases := []testCase{
 			{
 				service: "Echo",
@@ -194,6 +214,7 @@ func TestServiceAdded(t *testing.T) {
 		f := newFixture(t)
 		k := f.newKubernetes()
 		stopCh := make(chan struct{})
+		defer func() { stopCh <- struct{}{} }()
 		k.Run(stopCh)
 		time.Sleep(2 * time.Second)
 
@@ -247,7 +268,6 @@ func TestServiceAdded(t *testing.T) {
 
 func TestServiceDeleted(t *testing.T) {
 	t.Run("delete versioned services", func(t *testing.T) {
-		t.Parallel()
 		cases := []testCase{
 			{
 				service: "Echo",
@@ -259,6 +279,7 @@ func TestServiceDeleted(t *testing.T) {
 		f := newFixture(t)
 		k := f.newKubernetes()
 		stopCh := make(chan struct{})
+		defer func() { stopCh <- struct{}{} }()
 		k.Run(stopCh)
 		time.Sleep(2 * time.Second)
 
@@ -295,7 +316,6 @@ func TestServiceDeleted(t *testing.T) {
 	})
 
 	t.Run("delete unversioned services (one left)", func(t *testing.T) {
-		t.Parallel()
 		cases := []testCase{
 			{
 				service: "Echo",
@@ -307,6 +327,7 @@ func TestServiceDeleted(t *testing.T) {
 		f := newFixture(t)
 		k := f.newKubernetes()
 		stopCh := make(chan struct{})
+		defer func() { stopCh <- struct{}{} }()
 		k.Run(stopCh)
 		time.Sleep(2 * time.Second)
 
@@ -352,10 +373,17 @@ func TestServiceDeleted(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		waitForService(f.client, fooV2.Namespace, fooV2.Name)
+		err = waitForService(f.client, fooV2.Namespace, fooV2.Name)
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		// delete v1 of foo-service
 		err = f.client.Core().Services(fooV1.Namespace).Delete(fooV1.Name, &metav1.DeleteOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = waitForNoService(f.client, fooV1.Namespace, fooV1.Name)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -364,7 +392,6 @@ func TestServiceDeleted(t *testing.T) {
 	})
 
 	t.Run("delete unversioned services (more than left)", func(t *testing.T) {
-		t.Parallel()
 		cases := []testCase{
 			{
 				service: "Echo",
@@ -376,57 +403,16 @@ func TestServiceDeleted(t *testing.T) {
 		f := newFixture(t)
 		k := f.newKubernetes()
 		stopCh := make(chan struct{})
+		defer func() { stopCh <- struct{}{} }()
 		k.Run(stopCh)
 		time.Sleep(2 * time.Second)
-
-		// create v1 of foo-service
-		fooV1 := newService(
-			"foo-service",
-			"bar-ns",
-			map[string]string{
-
-				serviceNameAnnotationKey: "Echo",
-			},
-			[]core.ServicePort{
-				{
-					Name:     "grpc",
-					Protocol: "TCP",
-					Port:     5000,
-				},
-			},
-		)
-		_, err := f.client.Core().Services(fooV1.Namespace).Create(fooV1)
-		if err != nil {
-			t.Fatal(err)
-		}
-		waitForService(f.client, fooV1.Namespace, fooV1.Name)
-
-		// create v2 of foo-service
-		fooV2 := newService(
-			"foo-service-v2",
-			"bar-ns",
-			map[string]string{
-				serviceNameAnnotationKey: "Echo",
-			},
-			[]core.ServicePort{
-				{
-					Name:     "grpc",
-					Protocol: "TCP",
-					Port:     5000,
-				},
-			},
-		)
-		_, err = f.client.Core().Services(fooV2.Namespace).Create(fooV2)
-		if err != nil {
-			t.Fatal(err)
-		}
-		waitForService(f.client, fooV2.Namespace, fooV2.Name)
 
 		// create v3 of foo-service
 		fooV3 := newService(
 			"foo-service-v3",
 			"bar-ns",
 			map[string]string{
+
 				serviceNameAnnotationKey: "Echo",
 			},
 			[]core.ServicePort{
@@ -437,14 +423,60 @@ func TestServiceDeleted(t *testing.T) {
 				},
 			},
 		)
-		_, err = f.client.Core().Services(fooV3.Namespace).Create(fooV3)
+		_, err := f.client.Core().Services(fooV3.Namespace).Create(fooV3)
 		if err != nil {
 			t.Fatal(err)
 		}
 		waitForService(f.client, fooV3.Namespace, fooV3.Name)
 
-		// delete v1 of foo-service
-		err = f.client.Core().Services(fooV1.Namespace).Delete(fooV1.Name, &metav1.DeleteOptions{})
+		// create v4 of foo-service
+		fooV4 := newService(
+			"foo-service-v4",
+			"bar-ns",
+			map[string]string{
+				serviceNameAnnotationKey: "Echo",
+			},
+			[]core.ServicePort{
+				{
+					Name:     "grpc",
+					Protocol: "TCP",
+					Port:     5000,
+				},
+			},
+		)
+		_, err = f.client.Core().Services(fooV4.Namespace).Create(fooV4)
+		if err != nil {
+			t.Fatal(err)
+		}
+		waitForService(f.client, fooV4.Namespace, fooV4.Name)
+
+		// create v5 of foo-service
+		fooV5 := newService(
+			"foo-service-v5",
+			"bar-ns",
+			map[string]string{
+				serviceNameAnnotationKey: "Echo",
+			},
+			[]core.ServicePort{
+				{
+					Name:     "grpc",
+					Protocol: "TCP",
+					Port:     5000,
+				},
+			},
+		)
+		_, err = f.client.Core().Services(fooV5.Namespace).Create(fooV5)
+		if err != nil {
+			t.Fatal(err)
+		}
+		waitForService(f.client, fooV5.Namespace, fooV5.Name)
+
+		// delete v3 of foo-service
+		err = f.client.Core().Services(fooV3.Namespace).Delete(fooV3.Name, &metav1.DeleteOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = waitForNoService(f.client, fooV3.Namespace, fooV3.Name)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -455,7 +487,6 @@ func TestServiceDeleted(t *testing.T) {
 
 func TestServiceUpdated(t *testing.T) {
 	t.Run("change name of service", func(t *testing.T) {
-		t.Parallel()
 		cases := []testCase{
 			{
 				service: "Echo",
@@ -473,6 +504,7 @@ func TestServiceUpdated(t *testing.T) {
 		f := newFixture(t)
 		k := f.newKubernetes()
 		stopCh := make(chan struct{})
+		defer func() { stopCh <- struct{}{} }()
 		k.Run(stopCh)
 		time.Sleep(2 * time.Second)
 
@@ -510,7 +542,6 @@ func TestServiceUpdated(t *testing.T) {
 	})
 
 	t.Run("change version of service", func(t *testing.T) {
-		t.Parallel()
 		cases := []testCase{
 			{
 				service: "Echo",
@@ -528,6 +559,7 @@ func TestServiceUpdated(t *testing.T) {
 		f := newFixture(t)
 		k := f.newKubernetes()
 		stopCh := make(chan struct{})
+		defer func() { stopCh <- struct{}{} }()
 		k.Run(stopCh)
 		time.Sleep(2 * time.Second)
 
@@ -565,7 +597,6 @@ func TestServiceUpdated(t *testing.T) {
 	})
 
 	t.Run("Add version to duplicate unversioned service", func(t *testing.T) {
-		t.Parallel()
 		cases := []testCase{
 			{
 				service: "Echo",
@@ -583,6 +614,7 @@ func TestServiceUpdated(t *testing.T) {
 		f := newFixture(t)
 		k := f.newKubernetes()
 		stopCh := make(chan struct{})
+		defer func() { stopCh <- struct{}{} }()
 		k.Run(stopCh)
 		time.Sleep(2 * time.Second)
 
@@ -640,7 +672,6 @@ func TestServiceUpdated(t *testing.T) {
 	})
 
 	t.Run("add gRPC service annotation to Service", func(t *testing.T) {
-		t.Parallel()
 		cases := []testCase{
 			{
 				service: "Echo",
@@ -652,6 +683,7 @@ func TestServiceUpdated(t *testing.T) {
 		f := newFixture(t)
 		k := f.newKubernetes()
 		stopCh := make(chan struct{})
+		defer func() { stopCh <- struct{}{} }()
 		k.Run(stopCh)
 		time.Sleep(2 * time.Second)
 
@@ -688,7 +720,6 @@ func TestServiceUpdated(t *testing.T) {
 	})
 
 	t.Run("remove gRPC service annotation from Service", func(t *testing.T) {
-		t.Parallel()
 		cases := []testCase{
 			{
 				service: "Echo",
@@ -700,6 +731,7 @@ func TestServiceUpdated(t *testing.T) {
 		f := newFixture(t)
 		k := f.newKubernetes()
 		stopCh := make(chan struct{})
+		defer func() { stopCh <- struct{}{} }()
 		k.Run(stopCh)
 		time.Sleep(2 * time.Second)
 
