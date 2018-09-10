@@ -56,11 +56,13 @@ func (e *Error) Error() string {
 	}
 }
 
+// GRPCError is an error returned by gRPC upstream
 type GRPCError struct {
 	StatusCode int    `json:"code"`
 	Message    string `json:"message"`
 }
 
+// HTTPStatusCode converts gRPC status codes to HTTP status codes
 func (e *GRPCError) HTTPStatusCode() int {
 	c := codes.Code(e.StatusCode)
 	switch c {
