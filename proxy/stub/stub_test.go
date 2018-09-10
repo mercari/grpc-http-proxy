@@ -28,6 +28,14 @@ func (m *mockGrpcdynamicStub) InvokeRpc(ctx context.Context, method *desc.Method
 	return output, nil
 }
 
+func TestNewStub(t *testing.T) {
+	cc, err := grpc.Dial("localhost:5000", grpc.WithInsecure())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	NewStub(cc)
+}
+
 func TestStub_InvokeRPC(t *testing.T) {
 	cases := []struct {
 		name           string
