@@ -1,22 +1,12 @@
-package records
+package source
 
 import (
-	"net/url"
 	"reflect"
 	"sync"
 	"testing"
 
 	"github.com/mercari/grpc-http-proxy"
 )
-
-func parseURL(urlStr string, t *testing.T) proxy.ServiceURL {
-	t.Helper()
-	u, err := url.Parse(urlStr)
-	if err != nil {
-		t.Errorf("parsing of url failed: %s", err.Error())
-	}
-	return u
-}
 
 func TestNewRecords(t *testing.T) {
 	want := &Records{
@@ -41,7 +31,7 @@ func TestRecords_GetRecord(t *testing.T) {
 			name:    "resolved (multi-version)",
 			service: "a",
 			version: "v1",
-			url:     parseURL("a.v1", t),
+			url:     parseURL(t, "a.v1"),
 			err:     nil,
 		},
 		{
@@ -62,7 +52,7 @@ func TestRecords_GetRecord(t *testing.T) {
 			name:    "resolved (single version)",
 			service: "b",
 			version: "",
-			url:     parseURL("b.v1", t),
+			url:     parseURL(t, "b.v1"),
 			err:     nil,
 		},
 		{
@@ -93,17 +83,17 @@ func TestRecords_GetRecord(t *testing.T) {
 			"a": {
 				"v1": entry{
 					true,
-					parseURL("a.v1", t),
+					parseURL(t, "a.v1"),
 				},
 				"v2": entry{
 					true,
-					parseURL("a.v2", t),
+					parseURL(t, "a.v2"),
 				},
 			},
 			"b": {
 				"v1": entry{
 					true,
-					parseURL("b.v1", t),
+					parseURL(t, "b.v1"),
 				},
 			},
 			"d": {
@@ -158,12 +148,12 @@ func TestRecords_SetRecord(t *testing.T) {
 			name:    "add version",
 			service: "a",
 			version: "v2",
-			url:     parseURL("a.v2", t),
+			url:     parseURL(t, "a.v2"),
 			m: map[string]versions{
 				"a": {
 					"v1": entry{
 						true,
-						parseURL("a.v1", t),
+						parseURL(t, "a.v1"),
 					},
 				},
 			},
@@ -171,11 +161,11 @@ func TestRecords_SetRecord(t *testing.T) {
 				"a": {
 					"v1": entry{
 						true,
-						parseURL("a.v1", t),
+						parseURL(t, "a.v1"),
 					},
 					"v2": entry{
 						true,
-						parseURL("a.v2", t),
+						parseURL(t, "a.v2"),
 					},
 				},
 			},
@@ -184,13 +174,13 @@ func TestRecords_SetRecord(t *testing.T) {
 			name:    "add service",
 			service: "b",
 			version: "v1",
-			url:     parseURL("b.v1", t),
+			url:     parseURL(t, "b.v1"),
 			m:       map[string]versions{},
 			expected: map[string]versions{
 				"b": {
 					"v1": entry{
 						true,
-						parseURL("b.v1", t),
+						parseURL(t, "b.v1"),
 					},
 				},
 			},
@@ -233,17 +223,17 @@ func TestRecords_IsServiceUnique(t *testing.T) {
 			"a": {
 				"v1": entry{
 					true,
-					parseURL("a.v1", t),
+					parseURL(t, "a.v1"),
 				},
 				"v2": entry{
 					true,
-					parseURL("a.v2", t),
+					parseURL(t, "a.v2"),
 				},
 			},
 			"b": {
 				"v1": entry{
 					true,
-					parseURL("b.v1", t),
+					parseURL(t, "b.v1"),
 				},
 			},
 		},
@@ -275,11 +265,11 @@ func TestRecords_RemoveRecord(t *testing.T) {
 				"a": {
 					"v1": entry{
 						true,
-						parseURL("a.v1", t),
+						parseURL(t, "a.v1"),
 					},
 					"v2": entry{
 						true,
-						parseURL("a.v2", t),
+						parseURL(t, "a.v2"),
 					},
 				},
 			},
@@ -287,7 +277,7 @@ func TestRecords_RemoveRecord(t *testing.T) {
 				"a": {
 					"v2": entry{
 						true,
-						parseURL("a.v2", t),
+						parseURL(t, "a.v2"),
 					},
 				},
 			},
@@ -300,7 +290,7 @@ func TestRecords_RemoveRecord(t *testing.T) {
 				"b": {
 					"v1": entry{
 						true,
-						parseURL("b.v1", t),
+						parseURL(t, "b.v1"),
 					},
 				},
 			},
@@ -360,7 +350,7 @@ func TestRecords_RecordExists(t *testing.T) {
 			"a": {
 				"v1": entry{
 					true,
-					parseURL("a.v1", t),
+					parseURL(t, "a.v1"),
 				},
 			},
 		},

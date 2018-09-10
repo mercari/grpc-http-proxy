@@ -1,7 +1,6 @@
 package source
 
 import (
-	"net/url"
 	"reflect"
 	"testing"
 	"time"
@@ -80,15 +79,6 @@ func waitForService(c kubernetes.Interface, namespace, name string) error {
 	})
 }
 
-func parseURL(urlStr string, t *testing.T) proxy.ServiceURL {
-	t.Helper()
-	u, err := url.Parse(urlStr)
-	if err != nil {
-		t.Errorf("parsing of url failed: %s", err.Error())
-	}
-	return u
-}
-
 type testCase struct {
 	service string
 	version string
@@ -125,13 +115,13 @@ func TestServiceAdded(t *testing.T) {
 			{
 				service: "Echo",
 				version: "v1",
-				url:     parseURL("foo-service.bar-ns.svc.cluster.local", t),
+				url:     parseURL(t, "foo-service.bar-ns.svc.cluster.local"),
 				code:    -1,
 			},
 			{
 				service: "Echo",
 				version: "v2",
-				url:     parseURL("foo-service-v2.bar-ns.svc.cluster.local", t),
+				url:     parseURL(t, "foo-service-v2.bar-ns.svc.cluster.local"),
 				code:    -1,
 			},
 		}
@@ -306,7 +296,7 @@ func TestServiceDeleted(t *testing.T) {
 			{
 				service: "Echo",
 				version: "",
-				url:     parseURL("foo-service-v2.bar-ns.svc.cluster.local", t),
+				url:     parseURL(t, "foo-service-v2.bar-ns.svc.cluster.local"),
 				code:    -1,
 			},
 		}
@@ -470,7 +460,7 @@ func TestServiceUpdated(t *testing.T) {
 			{
 				service: "Ping",
 				version: "v1",
-				url:     parseURL("foo-service.bar-ns.svc.cluster.local", t),
+				url:     parseURL(t, "foo-service.bar-ns.svc.cluster.local"),
 				code:    -1,
 			},
 		}
@@ -524,7 +514,7 @@ func TestServiceUpdated(t *testing.T) {
 			{
 				service: "Echo",
 				version: "v2",
-				url:     parseURL("foo-service.bar-ns.svc.cluster.local", t),
+				url:     parseURL(t, "foo-service.bar-ns.svc.cluster.local"),
 				code:    -1,
 			},
 		}
@@ -578,7 +568,7 @@ func TestServiceUpdated(t *testing.T) {
 			{
 				service: "Echo",
 				version: "v2",
-				url:     parseURL("foo-service-v2.bar-ns.svc.cluster.local", t),
+				url:     parseURL(t, "foo-service-v2.bar-ns.svc.cluster.local"),
 				code:    -1,
 			},
 		}
@@ -646,7 +636,7 @@ func TestServiceUpdated(t *testing.T) {
 			{
 				service: "Echo",
 				version: "v1",
-				url:     parseURL("foo-service.bar-ns.svc.cluster.local", t),
+				url:     parseURL(t, "foo-service.bar-ns.svc.cluster.local"),
 				code:    -1,
 			},
 		}

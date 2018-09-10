@@ -17,7 +17,6 @@ import (
 	"k8s.io/client-go/util/workqueue"
 
 	"github.com/mercari/grpc-http-proxy"
-	"github.com/mercari/grpc-http-proxy/internal/records"
 )
 
 const (
@@ -27,7 +26,7 @@ const (
 
 // Service watches the Kubernetes API and updates records when there are changes to Service resources
 type Service struct {
-	*records.Records
+	*Records
 	logger    *zap.Logger
 	informer  cache.SharedIndexInformer
 	namespace string
@@ -49,7 +48,7 @@ func NewService(
 		time.Second, opts...)
 
 	k := &Service{
-		Records:   records.NewRecords(),
+		Records:   NewRecords(),
 		logger:    l,
 		queue:     workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "Services"),
 		namespace: namespace,

@@ -1,4 +1,4 @@
-package records
+package source
 
 import (
 	"fmt"
