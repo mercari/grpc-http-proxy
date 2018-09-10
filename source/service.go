@@ -122,9 +122,7 @@ func (k *Service) Resolve(svc, version string) (proxy.ServiceURL, error) {
 // Run starts the Service controller
 func (k *Service) Run(stopCh <-chan struct{}) {
 	go k.informer.Run(stopCh)
-	if !cache.WaitForCacheSync(stopCh,
-		k.informer.HasSynced,
-	) {
+	if !cache.WaitForCacheSync(stopCh, k.informer.HasSynced) {
 		k.logger.Error("timed out waiting for caches to sync")
 	}
 	go wait.Until(k.runWorker, time.Second, stopCh)
