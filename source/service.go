@@ -3,6 +3,7 @@ package source
 import (
 	"fmt"
 	"net/url"
+	"sync"
 	"time"
 
 	"github.com/pkg/errors"
@@ -32,6 +33,7 @@ type Service struct {
 	namespace string
 	lister    corelisters.ServiceLister
 	queue     workqueue.RateLimitingInterface
+	mutex     *sync.Mutex
 }
 
 // NewService creates a new Service source
@@ -52,6 +54,7 @@ func NewService(
 		logger:    l,
 		queue:     workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "Services"),
 		namespace: namespace,
+		mutex:     &sync.Mutex{},
 	}
 	serviceInformer := infFactory.Core().V1().Services()
 	k.informer = serviceInformer.Informer()
@@ -107,6 +110,8 @@ func NewService(
 
 // Resolve resolves the FQDN for a backend providing the gRPC service specified
 func (k *Service) Resolve(svc, version string) (proxy.ServiceURL, error) {
+	k.mutex.Lock()
+	defer k.mutex.Unlock()
 	r, err := k.Records.GetRecord(svc, version)
 	if err != nil {
 		k.logger.Error("failed to resolve service",
@@ -166,6 +171,8 @@ func (k *Service) eventHandler(evt Event) {
 		)
 		return
 	}
+	k.mutex.Lock()
+	defer k.mutex.Unlock()
 	switch evt.EventType {
 	case createEvent:
 		if !metav1.HasAnnotation(evt.Svc.ObjectMeta, serviceNameAnnotationKey) {
