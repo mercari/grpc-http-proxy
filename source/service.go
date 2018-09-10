@@ -170,7 +170,7 @@ func (k *Service) eventHandler(evt Event) {
 	switch evt.EventType {
 	case createEvent:
 		if !metav1.HasAnnotation(evt.Svc.ObjectMeta, serviceNameAnnotationKey) {
-			k.logger.Info("skipping service because of no annotation",
+			k.logger.Debug("skipping service because of no annotation",
 				zap.String("namespace", evt.Svc.Namespace),
 				zap.String("name", evt.Svc.Name),
 			)
@@ -186,7 +186,7 @@ func (k *Service) eventHandler(evt Event) {
 		k.Records.SetRecord(gRPCServiceName, "", u)
 	case deleteEvent:
 		if !metav1.HasAnnotation(evt.Svc.ObjectMeta, serviceNameAnnotationKey) {
-			k.logger.Info("skipping service because of no annotation",
+			k.logger.Debug("skipping service because of no annotation",
 				zap.String("namespace", evt.Svc.Namespace),
 				zap.String("name", evt.Svc.Name),
 			)
@@ -206,7 +206,7 @@ func (k *Service) eventHandler(evt Event) {
 		// Skip service and return
 		if !metav1.HasAnnotation(evt.Svc.ObjectMeta, serviceNameAnnotationKey) &&
 			!metav1.HasAnnotation(evt.OldSvc.ObjectMeta, serviceNameAnnotationKey) {
-			k.logger.Info("skipping service because of no annotation",
+			k.logger.Debug("skipping service because of no annotation",
 				zap.String("namespace", evt.Svc.Namespace),
 				zap.String("name", evt.Svc.Name),
 			)
