@@ -200,13 +200,8 @@ func (k *Service) eventHandler(evt Event) {
 		}
 		gRPCServiceName := evt.Svc.Annotations[serviceNameAnnotationKey]
 
-		if metav1.HasAnnotation(evt.Svc.ObjectMeta, serviceVersionAnnotationKey) {
-			version := evt.Svc.Annotations[serviceVersionAnnotationKey]
-			k.Records.RemoveRecord(gRPCServiceName, version, u)
-		} else {
-			// recreate entire record table to prevent avoid edge cases
-			k.recreateRecordTable(evt)
-		}
+		version := evt.Svc.Annotations[serviceVersionAnnotationKey]
+		k.Records.RemoveRecord(gRPCServiceName, version, u)
 	case updateEvent:
 		// Service versions before and after update do not have annotations
 		// Skip service and return
@@ -229,53 +224,41 @@ func (k *Service) eventHandler(evt Event) {
 
 			if oldGRPCServiceName != gRPCServiceName {
 				// gRPC service name was changed
-				if oldVersion != "" && version != "" {
-					// safe to remove and add, since both old and new are versioned
-					oldRawurl := fmt.Sprintf("%s.%s.svc.cluster.local",
-						evt.OldSvc.Name,
-						evt.OldSvc.Namespace,
+				oldRawurl := fmt.Sprintf("%s.%s.svc.cluster.local",
+					evt.OldSvc.Name,
+					evt.OldSvc.Namespace,
+				)
+				oldURL, err := url.Parse(oldRawurl)
+				if err != nil {
+					k.logger.Error("failure in processing change to Service",
+						zap.String("namespace", evt.Svc.Namespace),
+						zap.String("name", evt.Svc.Name),
+						zap.String("err", err.Error()),
 					)
-					oldURL, err := url.Parse(oldRawurl)
-					if err != nil {
-						k.logger.Error("failure in processing change to Service",
-							zap.String("namespace", evt.Svc.Namespace),
-							zap.String("name", evt.Svc.Name),
-							zap.String("err", err.Error()),
-						)
-						return
-					}
-					k.Records.RemoveRecord(oldGRPCServiceName, oldVersion, oldURL)
-					k.Records.SetRecord(gRPCServiceName, version, oldURL)
 					return
 				}
-				// recreate record table to avoid edge cases around empty versions
-				k.recreateRecordTable(evt)
+				k.Records.RemoveRecord(oldGRPCServiceName, oldVersion, oldURL)
+				k.Records.SetRecord(gRPCServiceName, version, oldURL)
 				return
 			}
 
 			if version != oldVersion {
 				// version annotation was changed
-				if oldVersion != "" && version != "" {
-					// safe to remove and add, since both old and new are versioned
-					oldRawurl := fmt.Sprintf("%s.%s.svc.cluster.local",
-						evt.OldSvc.Name,
-						evt.OldSvc.Namespace,
+				oldRawurl := fmt.Sprintf("%s.%s.svc.cluster.local",
+					evt.OldSvc.Name,
+					evt.OldSvc.Namespace,
+				)
+				oldURL, err := url.Parse(oldRawurl)
+				if err != nil {
+					k.logger.Error("failure in processing change to Service",
+						zap.String("namespace", evt.Svc.Namespace),
+						zap.String("name", evt.Svc.Name),
+						zap.String("err", err.Error()),
 					)
-					oldURL, err := url.Parse(oldRawurl)
-					if err != nil {
-						k.logger.Error("failure in processing change to Service",
-							zap.String("namespace", evt.Svc.Namespace),
-							zap.String("name", evt.Svc.Name),
-							zap.String("err", err.Error()),
-						)
-						return
-					}
-					k.Records.RemoveRecord(oldGRPCServiceName, oldVersion, oldURL)
-					k.Records.SetRecord(gRPCServiceName, version, u)
 					return
 				}
-				// recreate record table to avoid edge cases around empty versions
-				k.recreateRecordTable(evt)
+				k.Records.RemoveRecord(oldGRPCServiceName, oldVersion, oldURL)
+				k.Records.SetRecord(gRPCServiceName, version, u)
 				return
 			}
 
@@ -314,45 +297,6 @@ func (k *Service) eventHandler(evt Event) {
 		gRPCServiceName := evt.Svc.Annotations[serviceNameAnnotationKey]
 		version := evt.Svc.Annotations[serviceVersionAnnotationKey]
 		k.Records.SetRecord(gRPCServiceName, version, u)
-	}
-}
-
-func (k *Service) recreateRecordTable(evt Event) {
-	// The following logic recreates the mapping between gRPC services and Kubernetes Services
-	// every time there is a change to a service somewhere in the cluster.
-	// This does not scale well in clusters with large amounts of Services, so it is only used
-	// in some places to avoid edge cases.
-	objs := k.informer.GetStore().List()
-	svcs := make([]*core.Service, 0)
-	for _, o := range objs {
-		s, ok := o.(*core.Service)
-		if !ok {
-			k.logger.Error(fmt.Sprintf("invalid object in Store; got %T want *core.Service", o))
-			continue
-		}
-		if metav1.HasAnnotation(s.ObjectMeta, serviceNameAnnotationKey) {
-			svcs = append(svcs, s)
-		}
-	}
-	k.Records.ClearRecords()
-	for _, s := range svcs {
-		gRPCServiceName := s.Annotations[serviceNameAnnotationKey]
-		rawurl := fmt.Sprintf("%s.%s.svc.cluster.local", s.Name, s.Namespace)
-		u, err := url.Parse(rawurl)
-		if err != nil {
-			k.logger.Error("failure in processing change to Service",
-				zap.String("namespace", evt.Svc.Namespace),
-				zap.String("name", evt.Svc.Name),
-				zap.String("err", err.Error()),
-			)
-			return
-		}
-		if metav1.HasAnnotation(s.ObjectMeta, serviceVersionAnnotationKey) {
-			version := s.Annotations[serviceVersionAnnotationKey]
-			k.Records.SetRecord(gRPCServiceName, version, u)
-		} else {
-			k.Records.SetRecord(gRPCServiceName, "", u)
-		}
 	}
 }
 
