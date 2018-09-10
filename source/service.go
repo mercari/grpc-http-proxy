@@ -16,8 +16,6 @@ import (
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
-
-	"github.com/mercari/grpc-http-proxy"
 )
 
 const (
@@ -109,7 +107,7 @@ func NewService(
 }
 
 // Resolve resolves the FQDN for a backend providing the gRPC service specified
-func (k *Service) Resolve(svc, version string) (proxy.ServiceURL, error) {
+func (k *Service) Resolve(svc, version string) (*url.URL, error) {
 	k.mutex.Lock()
 	defer k.mutex.Unlock()
 	r, err := k.Records.GetRecord(svc, version)

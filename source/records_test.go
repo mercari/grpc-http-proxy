@@ -1,11 +1,11 @@
 package source
 
 import (
+	"net/url"
 	"reflect"
 	"sync"
 	"testing"
 
-	"github.com/mercari/grpc-http-proxy"
 	"github.com/mercari/grpc-http-proxy/errors"
 )
 
@@ -25,7 +25,7 @@ func TestRecords_GetRecord(t *testing.T) {
 		name    string
 		service string
 		version string
-		url     proxy.ServiceURL
+		url     *url.URL
 		err     *errors.Error
 	}{
 		{
@@ -82,17 +82,17 @@ func TestRecords_GetRecord(t *testing.T) {
 	r := Records{
 		m: map[string]versions{
 			"a": {
-				"v1": []proxy.ServiceURL{parseURL(t, "a.v1")},
-				"v2": []proxy.ServiceURL{parseURL(t, "a.v2")},
+				"v1": []*url.URL{parseURL(t, "a.v1")},
+				"v2": []*url.URL{parseURL(t, "a.v2")},
 			},
 			"b": {
-				"v1": []proxy.ServiceURL{parseURL(t, "b.v1")},
+				"v1": []*url.URL{parseURL(t, "b.v1")},
 			},
 			"d": {
-				"": []proxy.ServiceURL{parseURL(t, "d.v1"), parseURL(t, "d.v2")},
+				"": []*url.URL{parseURL(t, "d.v1"), parseURL(t, "d.v2")},
 			},
 			"e": {
-				"v1": []proxy.ServiceURL{parseURL(t, "e.v1"), parseURL(t, "e.v2")},
+				"v1": []*url.URL{parseURL(t, "e.v1"), parseURL(t, "e.v2")},
 			},
 		},
 		mutex: sync.RWMutex{},
@@ -126,7 +126,7 @@ func TestRecords_SetRecord(t *testing.T) {
 		name     string
 		service  string
 		version  string
-		url      proxy.ServiceURL
+		url      *url.URL
 		m        map[string]versions
 		expected map[string]versions
 	}{
@@ -137,13 +137,13 @@ func TestRecords_SetRecord(t *testing.T) {
 			url:     parseURL(t, "a.v2"),
 			m: map[string]versions{
 				"a": {
-					"v1": []proxy.ServiceURL{parseURL(t, "a.v1")},
+					"v1": []*url.URL{parseURL(t, "a.v1")},
 				},
 			},
 			expected: map[string]versions{
 				"a": {
-					"v1": []proxy.ServiceURL{parseURL(t, "a.v1")},
-					"v2": []proxy.ServiceURL{parseURL(t, "a.v2")},
+					"v1": []*url.URL{parseURL(t, "a.v1")},
+					"v2": []*url.URL{parseURL(t, "a.v2")},
 				},
 			},
 		},
@@ -155,7 +155,7 @@ func TestRecords_SetRecord(t *testing.T) {
 			m:       map[string]versions{},
 			expected: map[string]versions{
 				"b": {
-					"v1": []proxy.ServiceURL{parseURL(t, "b.v1")},
+					"v1": []*url.URL{parseURL(t, "b.v1")},
 				},
 			},
 		},
@@ -195,11 +195,11 @@ func TestRecords_IsServiceUnique(t *testing.T) {
 	r := Records{
 		m: map[string]versions{
 			"a": {
-				"v1": []proxy.ServiceURL{parseURL(t, "a.v1")},
-				"v2": []proxy.ServiceURL{parseURL(t, "a.v2")},
+				"v1": []*url.URL{parseURL(t, "a.v1")},
+				"v2": []*url.URL{parseURL(t, "a.v2")},
 			},
 			"b": {
-				"v1": []proxy.ServiceURL{parseURL(t, "b.v1")},
+				"v1": []*url.URL{parseURL(t, "b.v1")},
 			},
 		},
 		mutex: sync.RWMutex{},
@@ -219,7 +219,7 @@ func TestRecords_RemoveRecord(t *testing.T) {
 		name     string
 		service  string
 		version  string
-		url      proxy.ServiceURL
+		url      *url.URL
 		m        map[string]versions
 		expected map[string]versions
 	}{
@@ -230,13 +230,13 @@ func TestRecords_RemoveRecord(t *testing.T) {
 			url:     parseURL(t, "a.v1"),
 			m: map[string]versions{
 				"a": {
-					"v1": []proxy.ServiceURL{parseURL(t, "a.v1")},
-					"v2": []proxy.ServiceURL{parseURL(t, "a.v2")},
+					"v1": []*url.URL{parseURL(t, "a.v1")},
+					"v2": []*url.URL{parseURL(t, "a.v2")},
 				},
 			},
 			expected: map[string]versions{
 				"a": {
-					"v2": []proxy.ServiceURL{parseURL(t, "a.v2")},
+					"v2": []*url.URL{parseURL(t, "a.v2")},
 				},
 			},
 		},
@@ -247,12 +247,12 @@ func TestRecords_RemoveRecord(t *testing.T) {
 			url:     parseURL(t, "c.v1"),
 			m: map[string]versions{
 				"c": {
-					"v2": []proxy.ServiceURL{parseURL(t, "c.v2")},
+					"v2": []*url.URL{parseURL(t, "c.v2")},
 				},
 			},
 			expected: map[string]versions{
 				"c": {
-					"v2": []proxy.ServiceURL{parseURL(t, "c.v2")},
+					"v2": []*url.URL{parseURL(t, "c.v2")},
 				},
 			},
 		},
@@ -263,7 +263,7 @@ func TestRecords_RemoveRecord(t *testing.T) {
 			url:     parseURL(t, "b.v1"),
 			m: map[string]versions{
 				"b": {
-					"v1": []proxy.ServiceURL{parseURL(t, "b.v1")},
+					"v1": []*url.URL{parseURL(t, "b.v1")},
 				},
 			},
 			expected: map[string]versions{},
@@ -283,7 +283,7 @@ func TestRecords_RemoveRecord(t *testing.T) {
 			url:     parseURL(t, "a.v1"),
 			m: map[string]versions{
 				"a": {
-					"": []proxy.ServiceURL{
+					"": []*url.URL{
 						parseURL(t, "a.v1"),
 						parseURL(t, "a.v2"),
 					},
@@ -291,7 +291,7 @@ func TestRecords_RemoveRecord(t *testing.T) {
 			},
 			expected: map[string]versions{
 				"a": {
-					"": []proxy.ServiceURL{parseURL(t, "a.v2")},
+					"": []*url.URL{parseURL(t, "a.v2")},
 				},
 			},
 		},
@@ -340,7 +340,7 @@ func TestRecords_RecordExists(t *testing.T) {
 	r := Records{
 		m: map[string]versions{
 			"a": {
-				"v1": []proxy.ServiceURL{parseURL(t, "a.v1")},
+				"v1": []*url.URL{parseURL(t, "a.v1")},
 			},
 		},
 		mutex: sync.RWMutex{},

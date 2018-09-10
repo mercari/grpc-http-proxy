@@ -1,6 +1,7 @@
 package source
 
 import (
+	"net/url"
 	"reflect"
 	"testing"
 	"time"
@@ -16,7 +17,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 
-	"github.com/mercari/grpc-http-proxy"
 	"github.com/mercari/grpc-http-proxy/errors"
 )
 
@@ -103,7 +103,7 @@ func waitForNoService(c kubernetes.Interface, namespace, name string) error {
 type testCase struct {
 	service string
 	version string
-	url     proxy.ServiceURL
+	url     *url.URL
 	code    int
 }
 

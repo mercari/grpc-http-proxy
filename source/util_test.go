@@ -3,11 +3,9 @@ package source
 import (
 	"net/url"
 	"testing"
-
-	"github.com/mercari/grpc-http-proxy"
 )
 
-func parseURL(t *testing.T, rawurl string) proxy.ServiceURL {
+func parseURL(t *testing.T, rawurl string) *url.URL {
 	u, err := url.Parse(rawurl)
 	if err != nil {
 		t.Fatal(err.Error())
