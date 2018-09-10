@@ -2,18 +2,12 @@ package source
 
 import (
 	"fmt"
-	"reflect"
 	"sync"
 
 	"github.com/mercari/grpc-http-proxy"
 )
 
-type versions map[string]entry
-
-type entry struct {
-	decidable bool
-	url       proxy.ServiceURL
-}
+type versions map[string][]proxy.ServiceURL
 
 // Records contains mappings from a gRPC service to upstream hosts
 // It holds one upstream for each service version
@@ -80,21 +74,21 @@ func (r *Records) GetRecord(svc, version string) (proxy.ServiceURL, error) {
 		if len(vs) != 1 {
 			return nil, versionNotSpecified(svc)
 		}
-		for _, e := range vs {
-			if !e.decidable {
+		for _, entries := range vs {
+			if len(entries) != 1 {
 				return nil, versionUndecidable(svc)
 			}
-			return e.url, nil // this returns the first (and only) ServiceURL
+			return entries[0], nil // this returns the first (and only) ServiceURL
 		}
 	}
-	e, ok := vs[version]
+	entries, ok := vs[version]
 	if !ok {
 		return nil, versionNotFound(svc, version)
 	}
-	if !e.decidable {
+	if len(entries) != 1 {
 		return nil, versionUndecidable(svc)
 	}
-	return e.url, nil
+	return entries[0], nil
 }
 
 // SetRecord sets the backend service URL for the specifiec (service, version) pair.
@@ -104,25 +98,17 @@ func (r *Records) SetRecord(svc, version string, url proxy.ServiceURL) bool {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	if _, ok := r.m[svc]; !ok {
-		r.m[svc] = make(map[string]entry)
+		r.m[svc] = make(map[string][]proxy.ServiceURL)
 	}
-	if _, ok := r.m[svc][version]; ok && version == "" {
-		// if there are multiple backends for a given gRPC service,
-		// the blank version for it becomes undecidable.
-		r.m[svc][version] = entry{
-			decidable: false,
-		}
-		return false
+	if r.m[svc][version] == nil {
+		r.m[svc][version] = make([]proxy.ServiceURL, 0)
 	}
-	r.m[svc][version] = entry{
-		decidable: true,
-		url:       url,
-	}
+	r.m[svc][version] = append(r.m[svc][version], url)
 	return true
 }
 
 // RemoveRecord removes a record of the specified (service, version) pair
-func (r *Records) RemoveRecord(svc, version string) {
+func (r *Records) RemoveRecord(svc, version string, url proxy.ServiceURL) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -130,7 +116,20 @@ func (r *Records) RemoveRecord(svc, version string) {
 	if !ok {
 		return
 	}
-	delete(vs, version)
+	entries, ok := vs[version]
+	if !ok {
+		return
+	}
+	newEntries := make([]proxy.ServiceURL, 0)
+	for _, e := range entries {
+		if e.String() != url.String() {
+			newEntries = append(newEntries, e)
+		}
+	}
+	vs[version] = newEntries
+	if len(newEntries) == 0 {
+		delete(vs, version)
+	}
 	if len(vs) < 1 {
 		delete(r.m, svc)
 	}
@@ -152,15 +151,9 @@ func (r *Records) RecordExists(svc, version string) bool {
 	if !ok {
 		return false
 	}
-	_, ok = vs[version]
-	return ok
-}
-
-// Equals checks record table equality. This is useful for writing tests
-func (r *Records) Equals(r2 *Records) bool {
-	r.mutex.RLock()
-	r2.mutex.RLock()
-	defer r.mutex.RUnlock()
-	defer r2.mutex.RUnlock()
-	return reflect.DeepEqual(r.m, r2.m)
+	entries, ok := vs[version]
+	if !ok {
+		return false
+	}
+	return len(entries) > 0
 }

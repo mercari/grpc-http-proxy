@@ -202,7 +202,7 @@ func (k *Service) eventHandler(evt Event) {
 
 		if metav1.HasAnnotation(evt.Svc.ObjectMeta, serviceVersionAnnotationKey) {
 			version := evt.Svc.Annotations[serviceVersionAnnotationKey]
-			k.Records.RemoveRecord(gRPCServiceName, version)
+			k.Records.RemoveRecord(gRPCServiceName, version, u)
 		} else {
 			// recreate entire record table to prevent avoid edge cases
 			k.recreateRecordTable(evt)
@@ -231,8 +231,21 @@ func (k *Service) eventHandler(evt Event) {
 				// gRPC service name was changed
 				if oldVersion != "" && version != "" {
 					// safe to remove and add, since both old and new are versioned
-					k.Records.RemoveRecord(oldGRPCServiceName, oldVersion)
-					k.Records.SetRecord(gRPCServiceName, version, u)
+					oldRawurl := fmt.Sprintf("%s.%s.svc.cluster.local",
+						evt.OldSvc.Name,
+						evt.OldSvc.Namespace,
+					)
+					oldURL, err := url.Parse(oldRawurl)
+					if err != nil {
+						k.logger.Error("failure in processing change to Service",
+							zap.String("namespace", evt.Svc.Namespace),
+							zap.String("name", evt.Svc.Name),
+							zap.String("err", err.Error()),
+						)
+						return
+					}
+					k.Records.RemoveRecord(oldGRPCServiceName, oldVersion, oldURL)
+					k.Records.SetRecord(gRPCServiceName, version, oldURL)
 					return
 				}
 				// recreate record table to avoid edge cases around empty versions
@@ -244,7 +257,20 @@ func (k *Service) eventHandler(evt Event) {
 				// version annotation was changed
 				if oldVersion != "" && version != "" {
 					// safe to remove and add, since both old and new are versioned
-					k.Records.RemoveRecord(oldGRPCServiceName, oldVersion)
+					oldRawurl := fmt.Sprintf("%s.%s.svc.cluster.local",
+						evt.OldSvc.Name,
+						evt.OldSvc.Namespace,
+					)
+					oldURL, err := url.Parse(oldRawurl)
+					if err != nil {
+						k.logger.Error("failure in processing change to Service",
+							zap.String("namespace", evt.Svc.Namespace),
+							zap.String("name", evt.Svc.Name),
+							zap.String("err", err.Error()),
+						)
+						return
+					}
+					k.Records.RemoveRecord(oldGRPCServiceName, oldVersion, oldURL)
 					k.Records.SetRecord(gRPCServiceName, version, u)
 					return
 				}
@@ -265,9 +291,22 @@ func (k *Service) eventHandler(evt Event) {
 
 		// gRPC service annotation was removed from the Service
 		if !metav1.HasAnnotation(evt.Svc.ObjectMeta, serviceNameAnnotationKey) {
+			oldRawurl := fmt.Sprintf("%s.%s.svc.cluster.local",
+				evt.OldSvc.Name,
+				evt.OldSvc.Namespace,
+			)
+			oldURL, err := url.Parse(oldRawurl)
+			if err != nil {
+				k.logger.Error("failure in processing change to Service",
+					zap.String("namespace", evt.Svc.Namespace),
+					zap.String("name", evt.Svc.Name),
+					zap.String("err", err.Error()),
+				)
+				return
+			}
 			oldGRPCServiceName := evt.OldSvc.Annotations[serviceNameAnnotationKey]
 			oldVersion := evt.OldSvc.Annotations[serviceVersionAnnotationKey]
-			k.Records.RemoveRecord(oldGRPCServiceName, oldVersion)
+			k.Records.RemoveRecord(oldGRPCServiceName, oldVersion, oldURL)
 			return
 		}
 
