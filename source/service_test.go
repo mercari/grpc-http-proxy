@@ -111,6 +111,7 @@ func checkRecords(t *testing.T, k *Service, cases []testCase) {
 
 func TestServiceAdded(t *testing.T) {
 	t.Run("create versioned services", func(t *testing.T) {
+		t.Parallel()
 		cases := []testCase{
 			{
 				service: "Echo",
@@ -129,7 +130,7 @@ func TestServiceAdded(t *testing.T) {
 		k := f.newKubernetes()
 		stopCh := make(chan struct{})
 		k.Run(stopCh)
-		time.Sleep(time.Second)
+		time.Sleep(2 * time.Second)
 
 		// create v1 of foo-service
 		fooV1 := newService(
@@ -176,11 +177,12 @@ func TestServiceAdded(t *testing.T) {
 			t.Fatal(err)
 		}
 		waitForService(f.client, fooV2.Namespace, fooV2.Name)
-		time.Sleep(1 * time.Second)
+		time.Sleep(2 * time.Second)
 		checkRecords(t, k, cases)
 	})
 
 	t.Run("create unversioned services", func(t *testing.T) {
+		t.Parallel()
 		cases := []testCase{
 			{
 				service: "Echo",
@@ -193,7 +195,7 @@ func TestServiceAdded(t *testing.T) {
 		k := f.newKubernetes()
 		stopCh := make(chan struct{})
 		k.Run(stopCh)
-		time.Sleep(time.Second)
+		time.Sleep(2 * time.Second)
 
 		// create v1 of foo-service
 		fooV1 := newService(
@@ -238,13 +240,14 @@ func TestServiceAdded(t *testing.T) {
 			t.Fatal(err)
 		}
 		waitForService(f.client, fooV2.Namespace, fooV2.Name)
-		time.Sleep(1 * time.Second)
+		time.Sleep(2 * time.Second)
 		checkRecords(t, k, cases)
 	})
 }
 
 func TestServiceDeleted(t *testing.T) {
 	t.Run("delete versioned services", func(t *testing.T) {
+		t.Parallel()
 		cases := []testCase{
 			{
 				service: "Echo",
@@ -257,7 +260,7 @@ func TestServiceDeleted(t *testing.T) {
 		k := f.newKubernetes()
 		stopCh := make(chan struct{})
 		k.Run(stopCh)
-		time.Sleep(time.Second)
+		time.Sleep(2 * time.Second)
 
 		// create v1 of foo-service
 		fooV1 := newService(
@@ -287,11 +290,12 @@ func TestServiceDeleted(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		time.Sleep(1 * time.Second)
+		time.Sleep(2 * time.Second)
 		checkRecords(t, k, cases)
 	})
 
 	t.Run("delete unversioned services (one left)", func(t *testing.T) {
+		t.Parallel()
 		cases := []testCase{
 			{
 				service: "Echo",
@@ -304,7 +308,7 @@ func TestServiceDeleted(t *testing.T) {
 		k := f.newKubernetes()
 		stopCh := make(chan struct{})
 		k.Run(stopCh)
-		time.Sleep(time.Second)
+		time.Sleep(2 * time.Second)
 
 		// create v1 of foo-service
 		fooV1 := newService(
@@ -355,11 +359,12 @@ func TestServiceDeleted(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		time.Sleep(1 * time.Second)
+		time.Sleep(2 * time.Second)
 		checkRecords(t, k, cases)
 	})
 
 	t.Run("delete unversioned services (more than left)", func(t *testing.T) {
+		t.Parallel()
 		cases := []testCase{
 			{
 				service: "Echo",
@@ -372,7 +377,7 @@ func TestServiceDeleted(t *testing.T) {
 		k := f.newKubernetes()
 		stopCh := make(chan struct{})
 		k.Run(stopCh)
-		time.Sleep(time.Second)
+		time.Sleep(2 * time.Second)
 
 		// create v1 of foo-service
 		fooV1 := newService(
@@ -443,13 +448,14 @@ func TestServiceDeleted(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		time.Sleep(1 * time.Second)
+		time.Sleep(2 * time.Second)
 		checkRecords(t, k, cases)
 	})
 }
 
 func TestServiceUpdated(t *testing.T) {
 	t.Run("change name of service", func(t *testing.T) {
+		t.Parallel()
 		cases := []testCase{
 			{
 				service: "Echo",
@@ -468,7 +474,7 @@ func TestServiceUpdated(t *testing.T) {
 		k := f.newKubernetes()
 		stopCh := make(chan struct{})
 		k.Run(stopCh)
-		time.Sleep(time.Second)
+		time.Sleep(2 * time.Second)
 
 		// create v1 of foo-service
 		fooSvc := newService(
@@ -499,11 +505,12 @@ func TestServiceUpdated(t *testing.T) {
 			t.Fatal(err)
 		}
 		waitForService(f.client, fooSvc.Namespace, fooSvc.Name)
-		time.Sleep(1 * time.Second)
+		time.Sleep(2 * time.Second)
 		checkRecords(t, k, cases)
 	})
 
 	t.Run("change version of service", func(t *testing.T) {
+		t.Parallel()
 		cases := []testCase{
 			{
 				service: "Echo",
@@ -522,7 +529,7 @@ func TestServiceUpdated(t *testing.T) {
 		k := f.newKubernetes()
 		stopCh := make(chan struct{})
 		k.Run(stopCh)
-		time.Sleep(time.Second)
+		time.Sleep(2 * time.Second)
 
 		// create v1 of foo-service
 		fooSvc := newService(
@@ -553,11 +560,12 @@ func TestServiceUpdated(t *testing.T) {
 			t.Fatal(err)
 		}
 		waitForService(f.client, fooSvc.Namespace, fooSvc.Name)
-		time.Sleep(1 * time.Second)
+		time.Sleep(2 * time.Second)
 		checkRecords(t, k, cases)
 	})
 
 	t.Run("Add version to duplicate unversioned service", func(t *testing.T) {
+		t.Parallel()
 		cases := []testCase{
 			{
 				service: "Echo",
@@ -576,7 +584,7 @@ func TestServiceUpdated(t *testing.T) {
 		k := f.newKubernetes()
 		stopCh := make(chan struct{})
 		k.Run(stopCh)
-		time.Sleep(time.Second)
+		time.Sleep(2 * time.Second)
 
 		// create v1 of foo-service
 		fooV1 := newService(
@@ -627,11 +635,12 @@ func TestServiceUpdated(t *testing.T) {
 			t.Fatal(err)
 		}
 		waitForService(f.client, fooV2.Namespace, fooV2.Name)
-		time.Sleep(1 * time.Second)
+		time.Sleep(2 * time.Second)
 		checkRecords(t, k, cases)
 	})
 
 	t.Run("add gRPC service annotation to Service", func(t *testing.T) {
+		t.Parallel()
 		cases := []testCase{
 			{
 				service: "Echo",
@@ -644,7 +653,7 @@ func TestServiceUpdated(t *testing.T) {
 		k := f.newKubernetes()
 		stopCh := make(chan struct{})
 		k.Run(stopCh)
-		time.Sleep(time.Second)
+		time.Sleep(2 * time.Second)
 
 		// create v1 of foo-service
 		fooSvc := newService(
@@ -674,11 +683,12 @@ func TestServiceUpdated(t *testing.T) {
 			t.Fatal(err)
 		}
 		waitForService(f.client, fooSvc.Namespace, fooSvc.Name)
-		time.Sleep(1 * time.Second)
+		time.Sleep(2 * time.Second)
 		checkRecords(t, k, cases)
 	})
 
 	t.Run("remove gRPC service annotation from Service", func(t *testing.T) {
+		t.Parallel()
 		cases := []testCase{
 			{
 				service: "Echo",
@@ -691,7 +701,7 @@ func TestServiceUpdated(t *testing.T) {
 		k := f.newKubernetes()
 		stopCh := make(chan struct{})
 		k.Run(stopCh)
-		time.Sleep(time.Second)
+		time.Sleep(2 * time.Second)
 
 		// create v1 of foo-service
 		fooSvc := newService(
@@ -724,7 +734,7 @@ func TestServiceUpdated(t *testing.T) {
 			t.Fatal(err)
 		}
 		waitForService(f.client, fooSvc.Namespace, fooSvc.Name)
-		time.Sleep(1 * time.Second)
+		time.Sleep(2 * time.Second)
 		checkRecords(t, k, cases)
 	})
 }
