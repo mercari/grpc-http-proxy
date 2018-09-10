@@ -1,4 +1,4 @@
-package proxy
+package errors
 
 // Error represents internal errors
 type Error struct {

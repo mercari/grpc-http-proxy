@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/mercari/grpc-http-proxy"
+	"github.com/mercari/grpc-http-proxy/errors"
 )
 
 type versions map[string][]proxy.ServiceURL
@@ -16,31 +17,31 @@ type Records struct {
 	mutex sync.RWMutex
 }
 
-func serviceUnresolvable(svc string) *proxy.Error {
-	return &proxy.Error{
-		Code:    proxy.ServiceUnresolvable,
+func serviceUnresolvable(svc string) *errors.Error {
+	return &errors.Error{
+		Code:    errors.ServiceUnresolvable,
 		Message: fmt.Sprintf("The gRPC service %s is unresolvable", svc),
 	}
 }
 
-func versionNotFound(svc, version string) *proxy.Error {
-	return &proxy.Error{
-		Code:    proxy.ServiceUnresolvable,
+func versionNotFound(svc, version string) *errors.Error {
+	return &errors.Error{
+		Code:    errors.ServiceUnresolvable,
 		Message: fmt.Sprintf("Version %s of the gRPC service %s is unresolvable", version, svc),
 	}
 }
 
-func versionNotSpecified(svc string) *proxy.Error {
-	return &proxy.Error{
-		Code: proxy.VersionNotSpecified,
+func versionNotSpecified(svc string) *errors.Error {
+	return &errors.Error{
+		Code: errors.VersionNotSpecified,
 		Message: fmt.Sprintf("There are multiple version of the gRPC service %s available. "+
 			"You must specify one", svc),
 	}
 }
 
-func versionUndecidable(svc string) *proxy.Error {
-	return &proxy.Error{
-		Code: proxy.VersionUndecidable,
+func versionUndecidable(svc string) *errors.Error {
+	return &errors.Error{
+		Code: errors.VersionUndecidable,
 		Message: fmt.Sprintf("Multiple possible backends found for the gRPC service %s. "+
 			"Add annotations to distinguish versions", svc),
 	}

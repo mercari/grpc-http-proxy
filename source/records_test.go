@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/mercari/grpc-http-proxy"
+	"github.com/mercari/grpc-http-proxy/errors"
 )
 
 func TestNewRecords(t *testing.T) {
@@ -25,7 +26,7 @@ func TestRecords_GetRecord(t *testing.T) {
 		service string
 		version string
 		url     proxy.ServiceURL
-		err     *proxy.Error
+		err     *errors.Error
 	}{
 		{
 			name:    "resolved (multi-version)",
@@ -107,8 +108,8 @@ func TestRecords_GetRecord(t *testing.T) {
 				if tc.err != nil {
 					t.Fatalf("got: %v, want %v", nil, tc.err)
 				}
-			case *proxy.Error:
-				err2, ok := err.(*proxy.Error)
+			case *errors.Error:
+				err2, ok := err.(*errors.Error)
 				if !ok {
 					t.Fatalf("err was not *proxy.Error")
 				}

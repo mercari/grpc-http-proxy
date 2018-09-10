@@ -17,6 +17,7 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/mercari/grpc-http-proxy"
+	"github.com/mercari/grpc-http-proxy/errors"
 )
 
 type fixture struct {
@@ -115,7 +116,7 @@ func checkRecords(t *testing.T, k *Service, cases []testCase) {
 			t.Fatalf("got %v, want %v", got, want)
 		}
 		switch e := err.(type) {
-		case *proxy.Error:
+		case *errors.Error:
 			if got, want := int(e.Code), tc.code; got != want {
 				t.Fatalf("got %d, want %d", got, want)
 			}
@@ -208,7 +209,7 @@ func TestServiceAdded(t *testing.T) {
 				service: "Echo",
 				version: "",
 				url:     nil,
-				code:    int(proxy.VersionUndecidable),
+				code:    int(errors.VersionUndecidable),
 			},
 		}
 		f := newFixture(t)
@@ -273,7 +274,7 @@ func TestServiceDeleted(t *testing.T) {
 				service: "Echo",
 				version: "v1",
 				url:     nil,
-				code:    int(proxy.ServiceUnresolvable),
+				code:    int(errors.ServiceUnresolvable),
 			},
 		}
 		f := newFixture(t)
@@ -397,7 +398,7 @@ func TestServiceDeleted(t *testing.T) {
 				service: "Echo",
 				version: "",
 				url:     nil,
-				code:    int(proxy.VersionUndecidable),
+				code:    int(errors.VersionUndecidable),
 			},
 		}
 		f := newFixture(t)
@@ -492,7 +493,7 @@ func TestServiceUpdated(t *testing.T) {
 				service: "Echo",
 				version: "v1",
 				url:     nil,
-				code:    int(proxy.ServiceUnresolvable),
+				code:    int(errors.ServiceUnresolvable),
 			},
 			{
 				service: "Ping",
@@ -547,7 +548,7 @@ func TestServiceUpdated(t *testing.T) {
 				service: "Echo",
 				version: "v1",
 				url:     nil,
-				code:    int(proxy.ServiceUnresolvable),
+				code:    int(errors.ServiceUnresolvable),
 			},
 			{
 				service: "Echo",
@@ -602,7 +603,7 @@ func TestServiceUpdated(t *testing.T) {
 				service: "Echo",
 				version: "",
 				url:     nil,
-				code:    int(proxy.VersionNotSpecified),
+				code:    int(errors.VersionNotSpecified),
 			},
 			{
 				service: "Echo",
@@ -725,7 +726,7 @@ func TestServiceUpdated(t *testing.T) {
 				service: "Echo",
 				version: "v1",
 				url:     nil,
-				code:    int(proxy.ServiceUnresolvable),
+				code:    int(errors.ServiceUnresolvable),
 			},
 		}
 		f := newFixture(t)
