@@ -8,7 +8,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/mercari/grpc-http-proxy"
-	"github.com/mercari/grpc-http-proxy/log"
 	"github.com/mercari/grpc-http-proxy/proxy/reflection/mock"
 	"github.com/mercari/grpc-http-proxy/proxy/stub/mock"
 )
@@ -19,20 +18,20 @@ const method = "EmptyCall"
 var testError = errors.Errorf("an error")
 
 func TestNewProxy(t *testing.T) {
-	p := NewProxy(log.NewDiscard())
+	p := NewProxy()
 	if p == nil {
 		t.Fatalf("proxy was nil")
 	}
 }
 
 func TestProxy_Connect(t *testing.T) {
-	p := NewProxy(log.NewDiscard())
+	p := NewProxy()
 	p.Connect(context.Background(), parseURL(t, "localhost:5000"))
 }
 
 func TestProxy_Call(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
-		p := NewProxy(log.NewDiscard())
+		p := NewProxy()
 		ctx := context.Background()
 		md := make(proxy.Metadata)
 
@@ -71,7 +70,7 @@ func TestProxy_Call(t *testing.T) {
 	})
 
 	t.Run("service not found (upstream)", func(t *testing.T) {
-		p := NewProxy(log.NewDiscard())
+		p := NewProxy()
 		ctx := context.Background()
 		md := make(proxy.Metadata)
 
@@ -86,7 +85,7 @@ func TestProxy_Call(t *testing.T) {
 	})
 
 	t.Run("method not found", func(t *testing.T) {
-		p := NewProxy(log.NewDiscard())
+		p := NewProxy()
 		ctx := context.Background()
 		md := make(proxy.Metadata)
 
@@ -105,7 +104,7 @@ func TestProxy_Call(t *testing.T) {
 	})
 
 	t.Run("message type mismatch between JSON and proto", func(t *testing.T) {
-		p := NewProxy(log.NewDiscard())
+		p := NewProxy()
 		ctx := context.Background()
 		md := make(proxy.Metadata)
 
@@ -135,7 +134,7 @@ func TestProxy_Call(t *testing.T) {
 	})
 
 	t.Run("invokeRPC returned error", func(t *testing.T) {
-		p := NewProxy(log.NewDiscard())
+		p := NewProxy()
 		ctx := context.Background()
 		md := make(proxy.Metadata)
 
@@ -170,7 +169,7 @@ func TestProxy_Call(t *testing.T) {
 	})
 
 	t.Run("marshaling failed", func(t *testing.T) {
-		p := NewProxy(log.NewDiscard())
+		p := NewProxy()
 		ctx := context.Background()
 		md := make(proxy.Metadata)
 

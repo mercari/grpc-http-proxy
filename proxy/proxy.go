@@ -4,9 +4,8 @@ import (
 	"context"
 	"net/url"
 
-	"go.uber.org/zap"
-
 	"github.com/jhump/protoreflect/grpcreflect"
+	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	rpb "google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
 
@@ -17,17 +16,14 @@ import (
 
 // Proxy is a dynamic gRPC client that performs reflection
 type Proxy struct {
-	logger           *zap.Logger
 	cc               *grpc.ClientConn
 	reflectionClient reflection.ReflectionClient
 	stub             pstub.Stub
 }
 
 // NewProxy creates a new client
-func NewProxy(l *zap.Logger) *Proxy {
-	return &Proxy{
-		logger: l,
-	}
+func NewProxy() *Proxy {
+	return &Proxy{}
 }
 
 // Connect opens a connection to target.
@@ -53,29 +49,19 @@ func (p *Proxy) Call(ctx context.Context,
 ) (proxy.GRPCResponse, error) {
 	serviceDesc, err := p.reflectionClient.ResolveService(ctx, serviceName)
 	if err != nil {
-		p.logger.Error("service was not found upstream",
-			zap.String("service", serviceName),
-		)
-		return nil, err
+		return nil, errors.Wrap(err, "service was not found upstream even though it should have been there")
 	}
 
 	methodDesc, err := serviceDesc.FindMethodByName(methodName)
 	if err != nil {
-		p.logger.Error("method was not found in service",
-			zap.String("service", serviceName),
-			zap.String("method", methodName),
-		)
-		return nil, err
+		return nil, errors.Wrap(err, "method was not found in service")
 	}
 
 	inputMsg := methodDesc.GetInputType().NewMessage()
 
 	err = inputMsg.UnmarshalJSON(message)
 	if err != nil {
-		p.logger.Error("failed to unmarshal input JSON",
-			zap.String("err", err.Error()),
-		)
-		return nil, err
+		return nil, errors.Wrap(err, "failed to unmarshal input JSON")
 	}
 
 	outputMsg, err := p.stub.InvokeRPC(ctx, methodDesc, inputMsg, md)
@@ -84,10 +70,7 @@ func (p *Proxy) Call(ctx context.Context,
 	}
 	m, err := outputMsg.MarshalJSON()
 	if err != nil {
-		p.logger.Error("failed to marshal output to JSON",
-			zap.String("err", err.Error()),
-		)
-		return nil, err
+		return nil, errors.Wrap(err, "failed to marshal output JSON")
 	}
 	return m, err
 }
