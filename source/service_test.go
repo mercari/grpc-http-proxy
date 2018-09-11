@@ -48,9 +48,6 @@ func (f *fixture) newKubernetes() *Service {
 	for _, s := range f.lister {
 		k.informer.GetIndexer().Add(s)
 	}
-	for _, s := range f.objects {
-		f.objects = append(f.objects, s)
-	}
 	return k
 }
 
