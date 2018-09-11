@@ -19,9 +19,9 @@ import (
 	"github.com/mercari/grpc-http-proxy/proxy/reflection"
 )
 
-type mockGrpcdynamicStub struct{}
+type fakeGrpcdynamicStub struct{}
 
-func (m *mockGrpcdynamicStub) InvokeRpc(ctx context.Context, method *desc.MethodDescriptor, request proto.Message, opts ...grpc.CallOption) (proto.Message, error) {
+func (m *fakeGrpcdynamicStub) InvokeRpc(ctx context.Context, method *desc.MethodDescriptor, request proto.Message, opts ...grpc.CallOption) (proto.Message, error) {
 	if method.GetName() == "UnaryCall" {
 		return nil, status.Error(codes.Unimplemented, "unary unimplemented")
 	}
@@ -80,7 +80,7 @@ func TestStub_InvokeRPC(t *testing.T) {
 			ctx := context.Background()
 
 			stub := &stubImpl{
-				stub: &mockGrpcdynamicStub{},
+				stub: &fakeGrpcdynamicStub{},
 			}
 			invocation := &reflection.MethodInvocation{
 				MethodDescriptor: methodDesc,

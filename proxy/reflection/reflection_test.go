@@ -22,11 +22,11 @@ const (
 	file            = "grpc_testing/test.proto"
 )
 
-type mockGrpcreflectClient struct {
+type fakeGrpcreflectClient struct {
 	*desc.ServiceDescriptor
 }
 
-func (m *mockGrpcreflectClient) ResolveService(serviceName string) (*desc.ServiceDescriptor, error) {
+func (m *fakeGrpcreflectClient) ResolveService(serviceName string) (*desc.ServiceDescriptor, error) {
 	if serviceName != testService {
 		return nil, errors.Errorf("service not found")
 	}
@@ -34,7 +34,7 @@ func (m *mockGrpcreflectClient) ResolveService(serviceName string) (*desc.Servic
 }
 
 func TestNewReflector(t *testing.T) {
-	r := NewReflector(&mockGrpcreflectClient{})
+	r := NewReflector(&fakeGrpcreflectClient{})
 	if r == nil {
 		t.Fatal("reflector should not be nil")
 	}
@@ -87,7 +87,7 @@ func TestReflectorImpl_CreateInvocation(t *testing.T) {
 			ctx := context.Background()
 			fd := newFileDescriptor(t, file)
 			sd := ServiceDescriptorFromFileDescriptor(fd, testService)
-			r := NewReflector(&mockGrpcreflectClient{sd.ServiceDescriptor})
+			r := NewReflector(&fakeGrpcreflectClient{sd.ServiceDescriptor})
 			i, err := r.CreateInvocation(ctx, tc.serviceName, tc.methodName, []byte(tc.message))
 			if got, want := i == nil, tc.invocationIsNil; got != want {
 				t.Fatalf("got %t, want %t", got, want)
@@ -125,7 +125,7 @@ func TestReflectionClient_ResolveService(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := context.Background()
-			c := newReflectionClient(&mockGrpcreflectClient{})
+			c := newReflectionClient(&fakeGrpcreflectClient{})
 			serviceDesc, err := c.resolveService(ctx, tc.serviceName)
 			if got, want := serviceDesc == nil, tc.descIsNil; got != want {
 				t.Fatalf("got %t, want %t", got, want)

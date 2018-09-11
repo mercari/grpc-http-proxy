@@ -27,22 +27,22 @@ const (
 
 var testError = errors.Errorf("an error")
 
-type mockGrpcreflectClient struct {
+type fakeGrpcreflectClient struct {
 	*desc.ServiceDescriptor
 }
 
-func (m *mockGrpcreflectClient) ResolveService(serviceName string) (*desc.ServiceDescriptor, error) {
+func (m *fakeGrpcreflectClient) ResolveService(serviceName string) (*desc.ServiceDescriptor, error) {
 	if serviceName != testService {
 		return nil, errors.Errorf("service not found")
 	}
 	return m.ServiceDescriptor, nil
 }
 
-type mockGrpcdynamicStub struct {
+type fakeGrpcdynamicStub struct {
 	failMarshal bool
 }
 
-func (m *mockGrpcdynamicStub) InvokeRpc(ctx context.Context, method *desc.MethodDescriptor, request proto.Message, opts ...grpc.CallOption) (proto.Message, error) {
+func (m *fakeGrpcdynamicStub) InvokeRpc(ctx context.Context, method *desc.MethodDescriptor, request proto.Message, opts ...grpc.CallOption) (proto.Message, error) {
 	if method.GetName() == "UnaryCall" {
 		return nil, status.Error(codes.Unimplemented, "unary unimplemented")
 	}
@@ -68,10 +68,10 @@ func TestProxy_Call(t *testing.T) {
 		ctx := context.Background()
 		md := make(proxy.Metadata)
 
-		p.stub = stub.NewStub(&mockGrpcdynamicStub{})
+		p.stub = stub.NewStub(&fakeGrpcdynamicStub{})
 		fd := newFileDescriptor(t, file)
 		sd := reflection.ServiceDescriptorFromFileDescriptor(fd, testService)
-		p.reflector = reflection.NewReflector(&mockGrpcreflectClient{ServiceDescriptor: sd.ServiceDescriptor})
+		p.reflector = reflection.NewReflector(&fakeGrpcreflectClient{ServiceDescriptor: sd.ServiceDescriptor})
 
 		_, err := p.Call(ctx, testService, emptyCall, []byte("{}"), &md)
 		if err != nil {
@@ -84,8 +84,8 @@ func TestProxy_Call(t *testing.T) {
 		ctx := context.Background()
 		md := make(proxy.Metadata)
 
-		p.stub = stub.NewStub(&mockGrpcdynamicStub{})
-		p.reflector = reflection.NewReflector(&mockGrpcreflectClient{})
+		p.stub = stub.NewStub(&fakeGrpcdynamicStub{})
+		p.reflector = reflection.NewReflector(&fakeGrpcreflectClient{})
 
 		_, err := p.Call(ctx, notFoundService, emptyCall, []byte("{}"), &md)
 		if err == nil {
@@ -98,10 +98,10 @@ func TestProxy_Call(t *testing.T) {
 		ctx := context.Background()
 		md := make(proxy.Metadata)
 
-		p.stub = stub.NewStub(&mockGrpcdynamicStub{})
+		p.stub = stub.NewStub(&fakeGrpcdynamicStub{})
 		fd := newFileDescriptor(t, file)
 		sd := reflection.ServiceDescriptorFromFileDescriptor(fd, testService)
-		p.reflector = reflection.NewReflector(&mockGrpcreflectClient{ServiceDescriptor: sd.ServiceDescriptor})
+		p.reflector = reflection.NewReflector(&fakeGrpcreflectClient{ServiceDescriptor: sd.ServiceDescriptor})
 
 		_, err := p.Call(ctx, testService, unaryCall, []byte("{}"), &md)
 		if err == nil {
