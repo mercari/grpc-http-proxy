@@ -119,7 +119,7 @@ func (r *Records) RemoveRecord(svc, version string, u *url.URL) {
 	if len(newEntries) == 0 {
 		delete(vs, version)
 	}
-	if len(vs) < 1 {
+	if len(vs) == 0 {
 		delete(r.m, svc)
 	}
 }
@@ -127,8 +127,8 @@ func (r *Records) RemoveRecord(svc, version string, u *url.URL) {
 // IsServiceUnique checks if there is only one version of a service
 func (r *Records) IsServiceUnique(svc string) bool {
 	r.mutex.RLock()
+	defer r.mutex.RUnlock()
 	b := len(r.m[svc]) == 1
-	r.mutex.RUnlock()
 	return b
 }
 
