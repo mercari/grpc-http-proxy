@@ -45,7 +45,7 @@ func NewService(
 		opts = append(opts, informers.WithNamespace(namespace))
 	}
 	infFactory := informers.NewSharedInformerFactoryWithOptions(client,
-		time.Second, opts...)
+		30*time.Second, opts...)
 
 	k := &Service{
 		Records:   NewRecords(),
