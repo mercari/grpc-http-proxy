@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/mercari/grpc-http-proxy"
+	"github.com/mercari/grpc-http-proxy/proxy/reflection"
 	"github.com/mercari/grpc-http-proxy/proxy/reflection/mock"
 	"github.com/mercari/grpc-http-proxy/proxy/stub/mock"
 )
@@ -37,34 +38,25 @@ func TestProxy_Call(t *testing.T) {
 
 		ctrl, ctx := gomock.WithContext(context.Background(), t)
 		defer ctrl.Finish()
-		rc := mock_reflection.NewMockReflectionClient(ctrl)
-		mockSvcDesc := mock_reflection.NewMockServiceDescriptor(ctrl)
-		p.reflectionClient = rc
-		rc.EXPECT().ResolveService(ctx, testService).
-			Return(mockSvcDesc, nil)
+		foo := mock_reflection.NewMockReflector(ctrl)
+		p.reflector = foo
 
-		mockMethodDesc := mock_reflection.NewMockMethodDescriptor(ctrl)
-		mockSvcDesc.EXPECT().FindMethodByName(method).
-			Return(mockMethodDesc, error(nil))
-
-		mockInputMsgDesc := mock_reflection.NewMockMessageDescriptor(ctrl)
-		mockMethodDesc.EXPECT().GetInputType().
-			Return(mockInputMsgDesc)
 		mockInputMsg := mock_reflection.NewMockMessage(ctrl)
 		mockOutputMsg := mock_reflection.NewMockMessage(ctrl)
-		mockInputMsgDesc.EXPECT().NewMessage().
-			Return(mockInputMsg)
-
-		mockInputMsg.EXPECT().UnmarshalJSON([]byte("message body")).
-			Return(error(nil))
-
 		mockOutputMsg.EXPECT().MarshalJSON().
 			Return([]byte("message body"), error(nil))
 
 		mockStub := mock_stub.NewMockStub(ctrl)
 		p.stub = mockStub
-		mockStub.EXPECT().InvokeRPC(ctx, mockMethodDesc, mockInputMsg, &md).
+		invocation := &reflection.MethodInvocation{
+			MethodDescriptor: &reflection.MethodDescriptor{},
+			Message:          mockInputMsg,
+		}
+		mockStub.EXPECT().InvokeRPC(ctx, invocation, &md).
 			Return(mockOutputMsg, error(nil))
+
+		foo.EXPECT().CreateInvocation(ctx, testService, method, []byte("message body")).
+			Return(invocation, nil)
 
 		p.Call(ctx, testService, method, []byte("message body"), &md)
 	})
@@ -76,133 +68,14 @@ func TestProxy_Call(t *testing.T) {
 
 		ctrl, ctx := gomock.WithContext(context.Background(), t)
 		defer ctrl.Finish()
-		rc := mock_reflection.NewMockReflectionClient(ctrl)
-		p.reflectionClient = rc
-		rc.EXPECT().ResolveService(ctx, testService).
-			Return(nil, testError)
-
-		p.Call(ctx, testService, method, []byte("message body"), &md)
-	})
-
-	t.Run("method not found", func(t *testing.T) {
-		p := NewProxy()
-		ctx := context.Background()
-		md := make(proxy.Metadata)
-
-		ctrl, ctx := gomock.WithContext(context.Background(), t)
-		defer ctrl.Finish()
-		rc := mock_reflection.NewMockReflectionClient(ctrl)
-		mockSvcDesc := mock_reflection.NewMockServiceDescriptor(ctrl)
-		p.reflectionClient = rc
-		rc.EXPECT().ResolveService(ctx, testService).
-			Return(mockSvcDesc, nil)
-
-		mockSvcDesc.EXPECT().FindMethodByName(method).
-			Return(nil, testError)
-
-		p.Call(ctx, testService, method, []byte("message body"), &md)
-	})
-
-	t.Run("message type mismatch between JSON and proto", func(t *testing.T) {
-		p := NewProxy()
-		ctx := context.Background()
-		md := make(proxy.Metadata)
-
-		ctrl, ctx := gomock.WithContext(context.Background(), t)
-		defer ctrl.Finish()
-		rc := mock_reflection.NewMockReflectionClient(ctrl)
-		mockSvcDesc := mock_reflection.NewMockServiceDescriptor(ctrl)
-		p.reflectionClient = rc
-		rc.EXPECT().ResolveService(ctx, testService).
-			Return(mockSvcDesc, nil)
-
-		mockMethodDesc := mock_reflection.NewMockMethodDescriptor(ctrl)
-		mockSvcDesc.EXPECT().FindMethodByName(method).
-			Return(mockMethodDesc, error(nil))
-
-		mockInputMsgDesc := mock_reflection.NewMockMessageDescriptor(ctrl)
-		mockMethodDesc.EXPECT().GetInputType().
-			Return(mockInputMsgDesc)
-		mockInputMsg := mock_reflection.NewMockMessage(ctrl)
-		mockInputMsgDesc.EXPECT().NewMessage().
-			Return(mockInputMsg)
-
-		mockInputMsg.EXPECT().UnmarshalJSON([]byte("message body")).
-			Return(testError)
-
-		p.Call(ctx, testService, method, []byte("message body"), &md)
-	})
-
-	t.Run("invokeRPC returned error", func(t *testing.T) {
-		p := NewProxy()
-		ctx := context.Background()
-		md := make(proxy.Metadata)
-
-		ctrl, ctx := gomock.WithContext(context.Background(), t)
-		defer ctrl.Finish()
-		rc := mock_reflection.NewMockReflectionClient(ctrl)
-		mockSvcDesc := mock_reflection.NewMockServiceDescriptor(ctrl)
-		p.reflectionClient = rc
-		rc.EXPECT().ResolveService(ctx, testService).
-			Return(mockSvcDesc, nil)
-
-		mockMethodDesc := mock_reflection.NewMockMethodDescriptor(ctrl)
-		mockSvcDesc.EXPECT().FindMethodByName(method).
-			Return(mockMethodDesc, error(nil))
-
-		mockInputMsgDesc := mock_reflection.NewMockMessageDescriptor(ctrl)
-		mockMethodDesc.EXPECT().GetInputType().
-			Return(mockInputMsgDesc)
-		mockInputMsg := mock_reflection.NewMockMessage(ctrl)
-		mockInputMsgDesc.EXPECT().NewMessage().
-			Return(mockInputMsg)
-
-		mockInputMsg.EXPECT().UnmarshalJSON([]byte("message body")).
-			Return(error(nil))
+		foo := mock_reflection.NewMockReflector(ctrl)
+		p.reflector = foo
 
 		mockStub := mock_stub.NewMockStub(ctrl)
 		p.stub = mockStub
-		mockStub.EXPECT().InvokeRPC(ctx, mockMethodDesc, mockInputMsg, &md).
+
+		foo.EXPECT().CreateInvocation(ctx, testService, method, []byte("message body")).
 			Return(nil, testError)
-
-		p.Call(ctx, testService, method, []byte("message body"), &md)
-	})
-
-	t.Run("marshaling failed", func(t *testing.T) {
-		p := NewProxy()
-		ctx := context.Background()
-		md := make(proxy.Metadata)
-
-		ctrl, ctx := gomock.WithContext(context.Background(), t)
-		defer ctrl.Finish()
-		rc := mock_reflection.NewMockReflectionClient(ctrl)
-		mockSvcDesc := mock_reflection.NewMockServiceDescriptor(ctrl)
-		p.reflectionClient = rc
-		rc.EXPECT().ResolveService(ctx, testService).
-			Return(mockSvcDesc, nil)
-
-		mockMethodDesc := mock_reflection.NewMockMethodDescriptor(ctrl)
-		mockSvcDesc.EXPECT().FindMethodByName(method).
-			Return(mockMethodDesc, error(nil))
-
-		mockInputMsgDesc := mock_reflection.NewMockMessageDescriptor(ctrl)
-		mockMethodDesc.EXPECT().GetInputType().
-			Return(mockInputMsgDesc)
-		mockInputMsg := mock_reflection.NewMockMessage(ctrl)
-		mockOutputMsg := mock_reflection.NewMockMessage(ctrl)
-		mockInputMsgDesc.EXPECT().NewMessage().
-			Return(mockInputMsg)
-
-		mockInputMsg.EXPECT().UnmarshalJSON([]byte("message body")).
-			Return(error(nil))
-
-		mockOutputMsg.EXPECT().MarshalJSON().
-			Return(nil, testError)
-
-		mockStub := mock_stub.NewMockStub(ctrl)
-		p.stub = mockStub
-		mockStub.EXPECT().InvokeRPC(ctx, mockMethodDesc, mockInputMsg, &md).
-			Return(mockOutputMsg, error(nil))
 
 		p.Call(ctx, testService, method, []byte("message body"), &md)
 	})

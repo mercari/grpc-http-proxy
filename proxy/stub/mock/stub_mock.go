@@ -36,14 +36,14 @@ func (m *MockStub) EXPECT() *MockStubMockRecorder {
 }
 
 // InvokeRPC mocks base method
-func (m *MockStub) InvokeRPC(arg0 context.Context, arg1 reflection.MethodDescriptor, arg2 reflection.Message, arg3 *grpc_http_proxy.Metadata) (reflection.Message, error) {
-	ret := m.ctrl.Call(m, "InvokeRPC", arg0, arg1, arg2, arg3)
+func (m *MockStub) InvokeRPC(arg0 context.Context, arg1 *reflection.MethodInvocation, arg2 *grpc_http_proxy.Metadata) (reflection.Message, error) {
+	ret := m.ctrl.Call(m, "InvokeRPC", arg0, arg1, arg2)
 	ret0, _ := ret[0].(reflection.Message)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // InvokeRPC indicates an expected call of InvokeRPC
-func (mr *MockStubMockRecorder) InvokeRPC(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InvokeRPC", reflect.TypeOf((*MockStub)(nil).InvokeRPC), arg0, arg1, arg2, arg3)
+func (mr *MockStubMockRecorder) InvokeRPC(arg0, arg1, arg2 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InvokeRPC", reflect.TypeOf((*MockStub)(nil).InvokeRPC), arg0, arg1, arg2)
 }

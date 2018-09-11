@@ -81,7 +81,11 @@ func TestStub_InvokeRPC(t *testing.T) {
 			stub := &stubImpl{
 				stub: &mockGrpcdynamicStub{},
 			}
-			outputMsg, err := stub.InvokeRPC(ctx, methodDesc, inputMsg, (*proxy.Metadata)(&map[string][]string{}))
+			invocation := &reflection.MethodInvocation{
+				MethodDescriptor: methodDesc,
+				Message:          inputMsg,
+			}
+			outputMsg, err := stub.InvokeRPC(ctx, invocation, (*proxy.Metadata)(&map[string][]string{}))
 			if err != nil {
 				switch v := err.(type) {
 				case *errors.Error:

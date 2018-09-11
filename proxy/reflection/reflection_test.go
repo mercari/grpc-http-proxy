@@ -51,8 +51,8 @@ func TestReflectionClient_ResolveService(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := context.Background()
-			c := NewReflectionClient(&mockGrpcreflectClient{})
-			serviceDesc, err := c.ResolveService(ctx, tc.serviceName)
+			c := newReflectionClient(&mockGrpcreflectClient{})
+			serviceDesc, err := c.resolveService(ctx, tc.serviceName)
 			if got, want := serviceDesc == nil, tc.descIsNil; got != want {
 				t.Fatalf("got %t, want %t", got, want)
 			}
@@ -227,9 +227,9 @@ func TestMessage_MarshalJSON(t *testing.T) {
 				t.Fatal("messageImpl descriptor is nil")
 			}
 			message := messageImpl{
-				message: dynamic.NewMessage(messageDesc),
+				Message: dynamic.NewMessage(messageDesc),
 			}
-			message.message.SetField(message.message.FindFieldDescriptorByName("body"), []byte("hello"))
+			message.Message.SetField(message.Message.FindFieldDescriptorByName("body"), []byte("hello"))
 			j, err := message.MarshalJSON()
 			if got, want := j, tc.json; !reflect.DeepEqual(got, want) {
 				t.Fatalf("got %v, want %v", got, want)
@@ -274,7 +274,7 @@ func TestMessage_UnmarshalJSON(t *testing.T) {
 				t.Fatal("messageImpl descriptor is nil")
 			}
 			message := messageImpl{
-				message: dynamic.NewMessage(messageDesc),
+				Message: dynamic.NewMessage(messageDesc),
 			}
 			err := message.UnmarshalJSON(tc.json)
 

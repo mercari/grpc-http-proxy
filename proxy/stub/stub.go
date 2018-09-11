@@ -25,8 +25,7 @@ type Stub interface {
 	// This performs reflection against the backend every time it is called.
 	InvokeRPC(
 		ctx context.Context,
-		method reflection.MethodDescriptor,
-		inputMessage reflection.Message,
+		invocation *reflection.MethodInvocation,
 		md *proxy.Metadata) (reflection.Message, error)
 }
 
@@ -48,13 +47,12 @@ func NewStub(cc *grpc.ClientConn) Stub {
 
 func (s *stubImpl) InvokeRPC(
 	ctx context.Context,
-	method reflection.MethodDescriptor,
-	inputMessage reflection.Message,
+	invocation *reflection.MethodInvocation,
 	md *proxy.Metadata) (reflection.Message, error) {
 
 	o, err := s.stub.InvokeRpc(ctx,
-		method.AsProtoreflectDescriptor(),
-		inputMessage.AsProtoreflectMessage(),
+		invocation.MethodDescriptor.AsProtoreflectDescriptor(),
+		invocation.Message.AsProtoreflectMessage(),
 		grpc.Header((*metadata.MD)(md)))
 	if err != nil {
 		stat := status.Convert(err)
@@ -71,7 +69,7 @@ func (s *stubImpl) InvokeRPC(
 			Message:    stat.Message(),
 		}
 	}
-	outputMsg := method.GetOutputType().NewMessage()
+	outputMsg := invocation.MethodDescriptor.GetInputType().NewMessage()
 	err = outputMsg.ConvertFrom(o)
 
 	if err != nil {

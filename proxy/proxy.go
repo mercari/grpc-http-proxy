@@ -16,9 +16,9 @@ import (
 
 // Proxy is a dynamic gRPC client that performs reflection
 type Proxy struct {
-	cc               *grpc.ClientConn
-	reflectionClient reflection.ReflectionClient
-	stub             pstub.Stub
+	cc        *grpc.ClientConn
+	reflector reflection.Reflector
+	stub      pstub.Stub
 }
 
 // NewProxy creates a new client
@@ -31,7 +31,7 @@ func (p *Proxy) Connect(ctx context.Context, target *url.URL) error {
 	cc, err := grpc.DialContext(ctx, target.String(), grpc.WithInsecure())
 	p.cc = cc
 	rc := grpcreflect.NewClient(ctx, rpb.NewServerReflectionClient(p.cc))
-	p.reflectionClient = reflection.NewReflectionClient(rc)
+	p.reflector = reflection.NewReflector(rc)
 	p.stub = pstub.NewStub(p.cc)
 	return err
 }
@@ -47,24 +47,12 @@ func (p *Proxy) Call(ctx context.Context,
 	message []byte,
 	md *proxy.Metadata,
 ) (proxy.GRPCResponse, error) {
-	serviceDesc, err := p.reflectionClient.ResolveService(ctx, serviceName)
+	invocation, err := p.reflector.CreateInvocation(ctx, serviceName, methodName, message)
 	if err != nil {
-		return nil, errors.Wrap(err, "service was not found upstream even though it should have been there")
+		return nil, err
 	}
 
-	methodDesc, err := serviceDesc.FindMethodByName(methodName)
-	if err != nil {
-		return nil, errors.Wrap(err, "method was not found in service")
-	}
-
-	inputMsg := methodDesc.GetInputType().NewMessage()
-
-	err = inputMsg.UnmarshalJSON(message)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to unmarshal input JSON")
-	}
-
-	outputMsg, err := p.stub.InvokeRPC(ctx, methodDesc, inputMsg, md)
+	outputMsg, err := p.stub.InvokeRPC(ctx, invocation, md)
 	if err != nil {
 		return nil, err
 	}
