@@ -124,18 +124,21 @@ type MethodDescriptor struct {
 	*desc.MethodDescriptor
 }
 
+// GetInputType gets the MessageDescriptor for the method input type
 func (m *MethodDescriptor) GetInputType() *MessageDescriptor {
 	return &MessageDescriptor{
 		desc: m.MethodDescriptor.GetInputType(),
 	}
 }
 
+// GetOutputType gets the MessageDescriptor for the method output type
 func (m *MethodDescriptor) GetOutputType() *MessageDescriptor {
 	return &MessageDescriptor{
 		desc: m.MethodDescriptor.GetOutputType(),
 	}
 }
 
+// AsProtoreflectDescriptor returns the underlying protoreflect method descriptor
 func (m *MethodDescriptor) AsProtoreflectDescriptor() *desc.MethodDescriptor {
 	return m.MethodDescriptor
 }
