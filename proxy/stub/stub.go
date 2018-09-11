@@ -65,7 +65,7 @@ func (s *stubImpl) InvokeRPC(
 			Message:    stat.Message(),
 		}
 	}
-	outputMsg := invocation.MethodDescriptor.GetInputType().NewMessage()
+	outputMsg := invocation.MethodDescriptor.GetOutputType().NewMessage()
 	err = outputMsg.ConvertFrom(o)
 
 	if err != nil {
