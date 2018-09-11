@@ -24,7 +24,7 @@ type Reflector interface {
 }
 
 // NewReflector creates a new Reflector from the reflection client
-func NewReflector(rc grpcdynamicClient) Reflector {
+func NewReflector(rc grpcreflectClient) Reflector {
 	return &reflectorImpl{
 		rc: newReflectionClient(rc),
 	}
@@ -61,23 +61,23 @@ func (r *reflectorImpl) CreateInvocation(ctx context.Context,
 
 // reflectionClient performs reflection to obtain descriptors
 type reflectionClient struct {
-	grpcdynamicClient
+	grpcreflectClient
 }
 
-type grpcdynamicClient interface {
+type grpcreflectClient interface {
 	ResolveService(serviceName string) (*desc.ServiceDescriptor, error)
 }
 
 // newReflectionClient creates a new ReflectionClient
-func newReflectionClient(rc grpcdynamicClient) *reflectionClient {
+func newReflectionClient(rc grpcreflectClient) *reflectionClient {
 	return &reflectionClient{
-		grpcdynamicClient: rc,
+		grpcreflectClient: rc,
 	}
 }
 
 func (c *reflectionClient) resolveService(ctx context.Context,
 	serviceName string) (*ServiceDescriptor, error) {
-	d, err := c.grpcdynamicClient.ResolveService(serviceName)
+	d, err := c.grpcreflectClient.ResolveService(serviceName)
 	if err != nil {
 		return nil, &perrors.Error{
 			Code:    perrors.ServiceNotFound,
