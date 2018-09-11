@@ -17,36 +17,6 @@ type Records struct {
 	mutex sync.RWMutex
 }
 
-func serviceUnresolvable(svc string) *errors.Error {
-	return &errors.Error{
-		Code:    errors.ServiceUnresolvable,
-		Message: fmt.Sprintf("The gRPC service %s is unresolvable", svc),
-	}
-}
-
-func versionNotFound(svc, version string) *errors.Error {
-	return &errors.Error{
-		Code:    errors.ServiceUnresolvable,
-		Message: fmt.Sprintf("Version %s of the gRPC service %s is unresolvable", version, svc),
-	}
-}
-
-func versionNotSpecified(svc string) *errors.Error {
-	return &errors.Error{
-		Code: errors.VersionNotSpecified,
-		Message: fmt.Sprintf("There are multiple version of the gRPC service %s available. "+
-			"You must specify one", svc),
-	}
-}
-
-func versionUndecidable(svc string) *errors.Error {
-	return &errors.Error{
-		Code: errors.VersionUndecidable,
-		Message: fmt.Sprintf("Multiple possible backends found for the gRPC service %s. "+
-			"Add annotations to distinguish versions", svc),
-	}
-}
-
 // NewRecords creates an empty mapping
 func NewRecords() *Records {
 	m := make(map[string]versions)
@@ -69,25 +39,43 @@ func (r *Records) GetRecord(svc, version string) (*url.URL, error) {
 	defer r.mutex.RUnlock()
 	vs, ok := r.m[svc]
 	if !ok {
-		return nil, serviceUnresolvable(svc)
+		return nil, &errors.Error{
+			Code:    errors.ServiceUnresolvable,
+			Message: fmt.Sprintf("The gRPC service %s is unresolvable", svc),
+		}
 	}
 	if version == "" {
 		if len(vs) != 1 {
-			return nil, versionNotSpecified(svc)
+			return nil, &errors.Error{
+				Code: errors.VersionNotSpecified,
+				Message: fmt.Sprintf("There are multiple version of the gRPC service %s available. "+
+					"You must specify one", svc),
+			}
 		}
 		for _, entries := range vs {
 			if len(entries) != 1 {
-				return nil, versionUndecidable(svc)
+				return nil, &errors.Error{
+					Code: errors.VersionUndecidable,
+					Message: fmt.Sprintf("Multiple possible backends found for the gRPC service %s. "+
+						"Add annotations to distinguish versions", svc),
+				}
 			}
 			return entries[0], nil // this returns the first (and only) ServiceURL
 		}
 	}
 	entries, ok := vs[version]
 	if !ok {
-		return nil, versionNotFound(svc, version)
+		return nil, &errors.Error{
+			Code:    errors.ServiceUnresolvable,
+			Message: fmt.Sprintf("Version %s of the gRPC service %s is unresolvable", version, svc),
+		}
 	}
 	if len(entries) != 1 {
-		return nil, versionUndecidable(svc)
+		return nil, &errors.Error{
+			Code: errors.VersionUndecidable,
+			Message: fmt.Sprintf("Multiple possible backends found for the gRPC service %s. "+
+				"Add annotations to distinguish versions", svc),
+		}
 	}
 	return entries[0], nil
 }

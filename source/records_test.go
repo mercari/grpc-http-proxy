@@ -1,6 +1,7 @@
 package source
 
 import (
+	"fmt"
 	"net/url"
 	"reflect"
 	"sync"
@@ -40,14 +41,21 @@ func TestRecords_GetRecord(t *testing.T) {
 			service: "a",
 			version: "",
 			url:     nil,
-			err:     versionNotSpecified("a"),
+			err: &errors.Error{
+				Code: errors.VersionNotSpecified,
+				Message: fmt.Sprintf("There are multiple version of the gRPC service %s available. "+
+					"You must specify one", "a"),
+			},
 		},
 		{
 			name:    "version not found",
 			service: "a",
 			version: "v3",
 			url:     nil,
-			err:     versionNotFound("a", "v3"),
+			err: &errors.Error{
+				Code:    errors.ServiceUnresolvable,
+				Message: fmt.Sprintf("Version %s of the gRPC service %s is unresolvable", "v3", "a"),
+			},
 		},
 		{
 			name:    "resolved (single version)",
@@ -61,21 +69,32 @@ func TestRecords_GetRecord(t *testing.T) {
 			service: "c",
 			version: "",
 			url:     nil,
-			err:     serviceUnresolvable("c"),
+			err: &errors.Error{
+				Code:    errors.ServiceUnresolvable,
+				Message: fmt.Sprintf("The gRPC service %s is unresolvable", "c"),
+			},
 		},
 		{
 			name:    "service undecidable (unversioned)",
 			service: "d",
 			version: "",
 			url:     nil,
-			err:     versionUndecidable("d"),
+			err: &errors.Error{
+				Code: errors.VersionUndecidable,
+				Message: fmt.Sprintf("Multiple possible backends found for the gRPC service %s. "+
+					"Add annotations to distinguish versions", "d"),
+			},
 		},
 		{
 			name:    "service undecidable (versioned)",
 			service: "e",
 			version: "v1",
 			url:     nil,
-			err:     versionUndecidable("e"),
+			err: &errors.Error{
+				Code: errors.VersionUndecidable,
+				Message: fmt.Sprintf("Multiple possible backends found for the gRPC service %s. "+
+					"Add annotations to distinguish versions", "e"),
+			},
 		},
 	}
 
