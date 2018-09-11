@@ -44,7 +44,7 @@ func (c *reflectionClientImpl) ResolveService(ctx context.Context,
 		}
 	}
 	return &serviceDescriptorImpl{
-		desc: d,
+		ServiceDescriptor: d,
 	}, nil
 }
 
@@ -53,13 +53,9 @@ type ServiceDescriptor interface {
 	// FindMethodByName finds the method descriptor with the name
 	FindMethodByName(name string) (MethodDescriptor, error)
 }
-type serviceDescriptorImpl struct {
-	desc serviceDescriptor
-}
 
-// serviceDescriptor is the interface for message.serviceDescriptorImpl
-type serviceDescriptor interface {
-	FindMethodByName(name string) *desc.MethodDescriptor
+type serviceDescriptorImpl struct {
+	*desc.ServiceDescriptor
 }
 
 // ServiceDescriptorFromFileDescriptor finds the service descriptor from a file descriptor
@@ -70,12 +66,12 @@ func ServiceDescriptorFromFileDescriptor(fd *desc.FileDescriptor, service string
 		return nil
 	}
 	return &serviceDescriptorImpl{
-		desc: d,
+		ServiceDescriptor: d,
 	}
 }
 
 func (s *serviceDescriptorImpl) FindMethodByName(name string) (MethodDescriptor, error) {
-	d := s.desc.FindMethodByName(name)
+	d := s.ServiceDescriptor.FindMethodByName(name)
 	if d == nil {
 		return nil, &errors.Error{
 			Code:    errors.MethodNotFound,
@@ -83,7 +79,7 @@ func (s *serviceDescriptorImpl) FindMethodByName(name string) (MethodDescriptor,
 		}
 	}
 	return &methodDescriptorImpl{
-		desc: d,
+		MethodDescriptor: d,
 	}, nil
 }
 
@@ -98,33 +94,23 @@ type MethodDescriptor interface {
 }
 
 type methodDescriptorImpl struct {
-	desc methodDescriptor
-}
-
-// methodDescriptor is an interface for message.methodDescriptorImpl
-type methodDescriptor interface {
-	GetInputType() *desc.MessageDescriptor
-	GetOutputType() *desc.MessageDescriptor
+	*desc.MethodDescriptor
 }
 
 func (m *methodDescriptorImpl) GetInputType() MessageDescriptor {
 	return &messageDescriptorImpl{
-		desc: m.desc.GetInputType(),
+		desc: m.MethodDescriptor.GetInputType(),
 	}
 }
 
 func (m *methodDescriptorImpl) GetOutputType() MessageDescriptor {
 	return &messageDescriptorImpl{
-		desc: m.desc.GetOutputType(),
+		desc: m.MethodDescriptor.GetOutputType(),
 	}
 }
 
 func (m *methodDescriptorImpl) AsProtoreflectDescriptor() *desc.MethodDescriptor {
-	d, ok := m.desc.(*desc.MethodDescriptor)
-	if !ok {
-		return &desc.MethodDescriptor{}
-	}
-	return d
+	return m.MethodDescriptor
 }
 
 // MessageDescriptor represents a message type
