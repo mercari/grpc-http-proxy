@@ -1,5 +1,3 @@
-//go:generate mockgen -destination mock/stub_mock.go github.com/mercari/grpc-http-proxy/proxy/stub Stub
-
 package stub
 
 import (
@@ -8,7 +6,6 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/jhump/protoreflect/desc"
-	"github.com/jhump/protoreflect/dynamic/grpcdynamic"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -38,10 +35,9 @@ type grpcdynamicStub interface {
 }
 
 // NewStub creates a new Stub with the passed connection
-func NewStub(cc *grpc.ClientConn) Stub {
-	s := grpcdynamic.NewStub(cc)
+func NewStub(s grpcdynamicStub) Stub {
 	return &stubImpl{
-		stub: &s,
+		stub: s,
 	}
 }
 

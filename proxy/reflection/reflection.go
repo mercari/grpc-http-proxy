@@ -1,5 +1,3 @@
-//go:generate mockgen -destination mock/reflection_mock.go github.com/mercari/grpc-http-proxy/proxy/reflection Reflector,Message
-
 package reflection
 
 import (

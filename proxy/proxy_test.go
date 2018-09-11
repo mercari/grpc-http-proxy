@@ -4,19 +4,51 @@ import (
 	"context"
 	"testing"
 
-	"github.com/golang/mock/gomock"
+	"github.com/golang/protobuf/proto"
+	"github.com/jhump/protoreflect/desc"
+	"github.com/jhump/protoreflect/dynamic"
 	"github.com/pkg/errors"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	_ "google.golang.org/grpc/test/grpc_testing"
 
 	"github.com/mercari/grpc-http-proxy"
 	"github.com/mercari/grpc-http-proxy/proxy/reflection"
-	"github.com/mercari/grpc-http-proxy/proxy/reflection/mock"
-	"github.com/mercari/grpc-http-proxy/proxy/stub/mock"
 )
 
-const testService = "grpc.testing.TestService"
-const method = "EmptyCall"
+const (
+	testService     = "grpc.testing.TestService"
+	notFoundService = "not.found.NoService"
+	emptyCall       = "EmptyCall"
+	unaryCall       = "UnaryCall"
+	file            = "grpc_testing/test.proto"
+)
 
 var testError = errors.Errorf("an error")
+
+type mockGrpcreflectClient struct {
+	*desc.ServiceDescriptor
+}
+
+func (m *mockGrpcreflectClient) ResolveService(serviceName string) (*desc.ServiceDescriptor, error) {
+	if serviceName != testService {
+		return nil, errors.Errorf("service not found")
+	}
+	return m.ServiceDescriptor, nil
+}
+
+type mockGrpcdynamicStub struct {
+	failMarshal bool
+}
+
+func (m *mockGrpcdynamicStub) InvokeRpc(ctx context.Context, method *desc.MethodDescriptor, request proto.Message, opts ...grpc.CallOption) (proto.Message, error) {
+	if method.GetName() == "UnaryCall" {
+		return nil, status.Error(codes.Unimplemented, "unary unimplemented")
+	}
+	output := dynamic.NewMessage(method.GetOutputType())
+	return output, nil
+}
 
 func TestNewProxy(t *testing.T) {
 	p := NewProxy()
@@ -36,47 +68,44 @@ func TestProxy_Call(t *testing.T) {
 		ctx := context.Background()
 		md := make(proxy.Metadata)
 
-		ctrl, ctx := gomock.WithContext(context.Background(), t)
-		defer ctrl.Finish()
-		foo := mock_reflection.NewMockReflector(ctrl)
-		p.reflector = foo
+		p.stub = stub.NewStub(&mockGrpcdynamicStub{})
+		fd := newFileDescriptor(t, file)
+		sd := reflection.ServiceDescriptorFromFileDescriptor(fd, testService)
+		p.reflector = reflection.NewReflector(&mockGrpcreflectClient{ServiceDescriptor: sd.ServiceDescriptor})
 
-		mockInputMsg := mock_reflection.NewMockMessage(ctrl)
-		mockOutputMsg := mock_reflection.NewMockMessage(ctrl)
-		mockOutputMsg.EXPECT().MarshalJSON().
-			Return([]byte("message body"), error(nil))
-
-		mockStub := mock_stub.NewMockStub(ctrl)
-		p.stub = mockStub
-		invocation := &reflection.MethodInvocation{
-			MethodDescriptor: &reflection.MethodDescriptor{},
-			Message:          mockInputMsg,
+		_, err := p.Call(ctx, testService, emptyCall, []byte("{}"), &md)
+		if err != nil {
+			t.Fatalf("err should be nil, got %s", err.Error())
 		}
-		mockStub.EXPECT().InvokeRPC(ctx, invocation, &md).
-			Return(mockOutputMsg, error(nil))
-
-		foo.EXPECT().CreateInvocation(ctx, testService, method, []byte("message body")).
-			Return(invocation, nil)
-
-		p.Call(ctx, testService, method, []byte("message body"), &md)
 	})
 
-	t.Run("service not found (upstream)", func(t *testing.T) {
+	t.Run("reflector fails", func(t *testing.T) {
 		p := NewProxy()
 		ctx := context.Background()
 		md := make(proxy.Metadata)
 
-		ctrl, ctx := gomock.WithContext(context.Background(), t)
-		defer ctrl.Finish()
-		foo := mock_reflection.NewMockReflector(ctrl)
-		p.reflector = foo
+		p.stub = stub.NewStub(&mockGrpcdynamicStub{})
+		p.reflector = reflection.NewReflector(&mockGrpcreflectClient{})
 
-		mockStub := mock_stub.NewMockStub(ctrl)
-		p.stub = mockStub
+		_, err := p.Call(ctx, notFoundService, emptyCall, []byte("{}"), &md)
+		if err == nil {
+			t.Fatalf("err should be not nil")
+		}
+	})
 
-		foo.EXPECT().CreateInvocation(ctx, testService, method, []byte("message body")).
-			Return(nil, testError)
+	t.Run("invoking RPC returns error", func(t *testing.T) {
+		p := NewProxy()
+		ctx := context.Background()
+		md := make(proxy.Metadata)
 
-		p.Call(ctx, testService, method, []byte("message body"), &md)
+		p.stub = stub.NewStub(&mockGrpcdynamicStub{})
+		fd := newFileDescriptor(t, file)
+		sd := reflection.ServiceDescriptorFromFileDescriptor(fd, testService)
+		p.reflector = reflection.NewReflector(&mockGrpcreflectClient{ServiceDescriptor: sd.ServiceDescriptor})
+
+		_, err := p.Call(ctx, testService, unaryCall, []byte("{}"), &md)
+		if err == nil {
+			t.Fatalf("err should be not nil")
+		}
 	})
 }

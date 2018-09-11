@@ -8,6 +8,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/dynamic"
+	"github.com/jhump/protoreflect/dynamic/grpcdynamic"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -33,7 +34,7 @@ func TestNewStub(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	NewStub(cc)
+	NewStub(grpcdynamic.NewStub(cc))
 }
 
 func TestStub_InvokeRPC(t *testing.T) {

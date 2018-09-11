@@ -14,15 +14,89 @@ import (
 	perrors "github.com/mercari/grpc-http-proxy/errors"
 )
 
+const (
+	testService     = "grpc.testing.TestService"
+	notFoundService = "not.found.NoService"
+	emptyCall       = "EmptyCall"
+	notFoundCall    = "NotFoundCall"
+	file            = "grpc_testing/test.proto"
+)
+
 type mockGrpcreflectClient struct {
+	*desc.ServiceDescriptor
 }
 
 func (m *mockGrpcreflectClient) ResolveService(serviceName string) (*desc.ServiceDescriptor, error) {
-	if serviceName == "not.found.NoService" {
+	if serviceName != testService {
 		return nil, errors.Errorf("service not found")
 	}
-	return &desc.ServiceDescriptor{}, nil
+	return m.ServiceDescriptor, nil
+}
 
+func TestNewReflector(t *testing.T) {
+	r := NewReflector(&mockGrpcreflectClient{})
+	if r == nil {
+		t.Fatal("reflector should not be nil")
+	}
+}
+
+func TestReflectorImpl_CreateInvocation(t *testing.T) {
+	cases := []struct {
+		name            string
+		serviceName     string
+		methodName      string
+		message         []byte
+		invocationIsNil bool
+		errorIsNil      bool
+	}{
+		{
+			name:            "found",
+			serviceName:     testService,
+			methodName:      emptyCall,
+			message:         []byte("{}"),
+			invocationIsNil: false,
+			errorIsNil:      true,
+		},
+		{
+			name:            "service not found",
+			serviceName:     notFoundService,
+			methodName:      emptyCall,
+			message:         []byte("{}"),
+			invocationIsNil: true,
+			errorIsNil:      false,
+		},
+		{
+			name:            "method not found",
+			serviceName:     testService,
+			methodName:      notFoundCall,
+			message:         []byte("{}"),
+			invocationIsNil: true,
+			errorIsNil:      false,
+		},
+		{
+			name:            "unmarshal failed",
+			serviceName:     testService,
+			methodName:      emptyCall,
+			message:         []byte("{"),
+			invocationIsNil: true,
+			errorIsNil:      false,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.Background()
+			fd := newFileDescriptor(t, file)
+			sd := ServiceDescriptorFromFileDescriptor(fd, testService)
+			r := NewReflector(&mockGrpcreflectClient{sd.ServiceDescriptor})
+			i, err := r.CreateInvocation(ctx, tc.serviceName, tc.methodName, []byte(tc.message))
+			if got, want := i == nil, tc.invocationIsNil; got != want {
+				t.Fatalf("got %t, want %t", got, want)
+			}
+			if got, want := err == nil, tc.errorIsNil; got != want {
+				t.Fatalf("got %v, want %v", got, want)
+			}
+		})
+	}
 }
 
 func TestReflectionClient_ResolveService(t *testing.T) {

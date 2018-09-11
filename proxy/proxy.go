@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/url"
 
+	"github.com/jhump/protoreflect/dynamic/grpcdynamic"
 	"github.com/jhump/protoreflect/grpcreflect"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
@@ -32,7 +33,7 @@ func (p *Proxy) Connect(ctx context.Context, target *url.URL) error {
 	p.cc = cc
 	rc := grpcreflect.NewClient(ctx, rpb.NewServerReflectionClient(p.cc))
 	p.reflector = reflection.NewReflector(rc)
-	p.stub = pstub.NewStub(p.cc)
+	p.stub = pstub.NewStub(grpcdynamic.NewStub(p.cc))
 	return err
 }
 
