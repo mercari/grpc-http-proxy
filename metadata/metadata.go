@@ -2,6 +2,7 @@ package metadata
 
 import "strings"
 
+// This is from an old grpc-gateway (https://github.com/grpc-ecosystem/grpc-gateway) specification
 const metadataHeaderPrefix = "Grpc-Metadata-"
 
 // Metadata is gRPC metadata sent to and from upstream
