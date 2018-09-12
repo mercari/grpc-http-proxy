@@ -262,6 +262,43 @@ func TestServiceAdded(t *testing.T) {
 		time.Sleep(2 * time.Second)
 		checkRecords(t, k, cases)
 	})
+
+	t.Run("create service with invalid ports", func(t *testing.T) {
+		cases := []testCase{
+			{
+				service: "Echo",
+				version: "v1",
+				url:     nil,
+				code:    int(errors.ServiceUnresolvable),
+			},
+		}
+		f := newFixture(t)
+		k := f.newKubernetes()
+		stopCh := make(chan struct{})
+		defer func() { stopCh <- struct{}{} }()
+		k.Run(stopCh)
+		time.Sleep(2 * time.Second)
+
+		// create v1 of foo-service
+		fooV1 := newService(
+			"foo-service",
+			"bar-ns",
+			map[string]string{
+
+				serviceNameAnnotationKey:    "Echo",
+				serviceVersionAnnotationKey: "v1",
+			},
+			[]core.ServicePort{},
+		)
+		_, err := f.client.Core().Services(fooV1.Namespace).Create(fooV1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		waitForService(f.client, fooV1.Namespace, fooV1.Name)
+
+		time.Sleep(2 * time.Second)
+		checkRecords(t, k, cases)
+	})
 }
 
 func TestServiceDeleted(t *testing.T) {
@@ -665,6 +702,110 @@ func TestServiceUpdated(t *testing.T) {
 			t.Fatal(err)
 		}
 		waitForService(f.client, fooV2.Namespace, fooV2.Name)
+		time.Sleep(2 * time.Second)
+		checkRecords(t, k, cases)
+	})
+
+	t.Run("change port (valid)", func(t *testing.T) {
+		cases := []testCase{
+			{
+				service: "Echo",
+				version: "v1",
+				url:     parseURL(t, "foo-service.bar-ns.svc.cluster.local:5001"),
+				code:    -1,
+			},
+		}
+		f := newFixture(t)
+		k := f.newKubernetes()
+		stopCh := make(chan struct{})
+		defer func() { stopCh <- struct{}{} }()
+		k.Run(stopCh)
+		time.Sleep(2 * time.Second)
+
+		// create v1 of foo-service
+		fooV1 := newService(
+			"foo-service",
+			"bar-ns",
+			map[string]string{
+				serviceNameAnnotationKey:    "Echo",
+				serviceVersionAnnotationKey: "v1",
+			},
+			[]core.ServicePort{
+				{
+					Name:     "grpc",
+					Protocol: "TCP",
+					Port:     5000,
+				},
+			},
+		)
+		_, err := f.client.Core().Services(fooV1.Namespace).Create(fooV1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		waitForService(f.client, fooV1.Namespace, fooV1.Name)
+
+		// change port of foo-service v1
+		fooV1.Spec.Ports = []core.ServicePort{
+			{
+				Name:     "grpc",
+				Protocol: "TCP",
+				Port:     5001,
+			},
+		}
+		_, err = f.client.Core().Services(fooV1.Namespace).Update(fooV1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		waitForService(f.client, fooV1.Namespace, fooV1.Name)
+		time.Sleep(2 * time.Second)
+		checkRecords(t, k, cases)
+	})
+
+	t.Run("change port (invalid)", func(t *testing.T) {
+		cases := []testCase{
+			{
+				service: "Echo",
+				version: "v1",
+				url:     nil,
+				code:    int(errors.ServiceUnresolvable),
+			},
+		}
+		f := newFixture(t)
+		k := f.newKubernetes()
+		stopCh := make(chan struct{})
+		defer func() { stopCh <- struct{}{} }()
+		k.Run(stopCh)
+		time.Sleep(2 * time.Second)
+
+		// create v1 of foo-service
+		fooV1 := newService(
+			"foo-service",
+			"bar-ns",
+			map[string]string{
+				serviceNameAnnotationKey:    "Echo",
+				serviceVersionAnnotationKey: "v1",
+			},
+			[]core.ServicePort{
+				{
+					Name:     "grpc",
+					Protocol: "TCP",
+					Port:     5000,
+				},
+			},
+		)
+		_, err := f.client.Core().Services(fooV1.Namespace).Create(fooV1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		waitForService(f.client, fooV1.Namespace, fooV1.Name)
+
+		// change port of foo-service v1
+		fooV1.Spec.Ports = []core.ServicePort{}
+		_, err = f.client.Core().Services(fooV1.Namespace).Update(fooV1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		waitForService(f.client, fooV1.Namespace, fooV1.Name)
 		time.Sleep(2 * time.Second)
 		checkRecords(t, k, cases)
 	})
