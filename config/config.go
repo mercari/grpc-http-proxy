@@ -13,7 +13,7 @@ type Env struct {
 	Port int16 `envconfig:"PORT" default:"3000"`
 
 	// Token is the access token
-	Token string `envconfig:"TOKEN" required:"true"`
+	Token string `envconfig:"TOKEN"`
 }
 
 func ReadFromEnv() (*Env, error) {

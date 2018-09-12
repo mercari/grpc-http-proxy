@@ -19,7 +19,7 @@ func apply(handler http.HandlerFunc, adapters ...Adapter) http.HandlerFunc {
 func (s *Server) withAccessToken(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		providedToken := r.Header.Get("X-Access-Token")
-		if providedToken == "" {
+		if providedToken == "" && s.accessToken != "" {
 			w.WriteHeader(http.StatusUnauthorized)
 			s.logger.Info("unauthorized",
 				zap.String("reason", "no token"),
