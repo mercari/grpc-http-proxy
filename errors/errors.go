@@ -63,6 +63,7 @@ type GRPCError struct {
 }
 
 // HTTPStatusCode converts gRPC status codes to HTTP status codes
+// https://github.com/grpc-ecosystem/grpc-gateway/blob/7951e5b80744558ae3363fd792806e1db15e91a4/runtime/errors.go
 func (e *GRPCError) HTTPStatusCode() int {
 	c := codes.Code(e.StatusCode)
 	switch c {
