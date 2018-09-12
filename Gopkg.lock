@@ -283,7 +283,7 @@
   revision = "11092d34479b07829b72e10713b159248caf5dad"
 
 [[projects]]
-  digest = "1:9ced8ec02cdceed5908b4331f1e7d41f544096ba3ff6cf623f2335ecd634993e"
+  digest = "1:3ec298c13cf2528e2a9d966b1be57e12241d8f9840093494f4b86edc44497ac4"
   name = "google.golang.org/grpc"
   packages = [
     ".",
@@ -306,7 +306,6 @@
     "metadata",
     "naming",
     "peer",
-    "reflection",
     "reflection/grpc_reflection_v1alpha",
     "resolver",
     "resolver/dns",
@@ -608,7 +607,6 @@
     "google.golang.org/grpc",
     "google.golang.org/grpc/codes",
     "google.golang.org/grpc/metadata",
-    "google.golang.org/grpc/reflection",
     "google.golang.org/grpc/reflection/grpc_reflection_v1alpha",
     "google.golang.org/grpc/status",
     "google.golang.org/grpc/test/grpc_testing",
