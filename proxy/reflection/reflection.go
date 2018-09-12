@@ -106,6 +106,7 @@ func ServiceDescriptorFromFileDescriptor(fd *desc.FileDescriptor, service string
 	}
 }
 
+// FindMethodByName finds the method descriptor by name from the service descriptor
 func (s *ServiceDescriptor) FindMethodByName(name string) (*MethodDescriptor, error) {
 	d := s.ServiceDescriptor.FindMethodByName(name)
 	if d == nil {
@@ -148,6 +149,7 @@ type MessageDescriptor struct {
 	desc *desc.MessageDescriptor
 }
 
+// NewMessage creates a new message from the message descriptor
 func (m *MessageDescriptor) NewMessage() *messageImpl {
 	return &messageImpl{
 		Message: dynamic.NewMessage(m.desc),
