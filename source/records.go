@@ -39,14 +39,14 @@ func (r *Records) GetRecord(svc, version string) (*url.URL, error) {
 	defer r.mutex.RUnlock()
 	vs, ok := r.m[svc]
 	if !ok {
-		return nil, &errors.InternalError{
+		return nil, &errors.ProxyError{
 			Code:    errors.ServiceUnresolvable,
 			Message: fmt.Sprintf("The gRPC service %s is unresolvable", svc),
 		}
 	}
 	if version == "" {
 		if len(vs) != 1 {
-			return nil, &errors.InternalError{
+			return nil, &errors.ProxyError{
 				Code: errors.VersionNotSpecified,
 				Message: fmt.Sprintf("There are multiple version of the gRPC service %s available. "+
 					"You must specify one", svc),
@@ -54,7 +54,7 @@ func (r *Records) GetRecord(svc, version string) (*url.URL, error) {
 		}
 		for _, entries := range vs {
 			if len(entries) != 1 {
-				return nil, &errors.InternalError{
+				return nil, &errors.ProxyError{
 					Code: errors.VersionUndecidable,
 					Message: fmt.Sprintf("Multiple possible backends found for the gRPC service %s. "+
 						"Add annotations to distinguish versions", svc),
@@ -65,13 +65,13 @@ func (r *Records) GetRecord(svc, version string) (*url.URL, error) {
 	}
 	entries, ok := vs[version]
 	if !ok {
-		return nil, &errors.InternalError{
+		return nil, &errors.ProxyError{
 			Code:    errors.ServiceUnresolvable,
 			Message: fmt.Sprintf("Version %s of the gRPC service %s is unresolvable", version, svc),
 		}
 	}
 	if len(entries) != 1 {
-		return nil, &errors.InternalError{
+		return nil, &errors.ProxyError{
 			Code: errors.VersionUndecidable,
 			Message: fmt.Sprintf("Multiple possible backends found for the gRPC service %s. "+
 				"Add annotations to distinguish versions", svc),

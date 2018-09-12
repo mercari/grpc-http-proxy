@@ -14,8 +14,8 @@ type Error interface {
 	WriteJSON(w io.Writer) error
 }
 
-// InternalError represents internal errors
-type InternalError struct {
+// ProxyError represents internal errors
+type ProxyError struct {
 	Code
 	Message string
 	Err     error
@@ -44,7 +44,7 @@ const (
 )
 
 // Error satisfies the error interface
-func (e *InternalError) Error() string {
+func (e *ProxyError) Error() string {
 	switch e.Code {
 	case UpstreamConnFailure:
 		return "could not connect to backend gRPC service"
@@ -66,7 +66,7 @@ func (e *InternalError) Error() string {
 }
 
 // HTTPStatusCode returns the HTTP status code for a internal error
-func (e *InternalError) HTTPStatusCode() int {
+func (e *ProxyError) HTTPStatusCode() int {
 	switch e.Code {
 	case UpstreamConnFailure:
 		return http.StatusBadGateway
@@ -88,7 +88,7 @@ func (e *InternalError) HTTPStatusCode() int {
 }
 
 // WriteJSON writes an JSON representation of the internal error for responses
-func (e *InternalError) WriteJSON(w io.Writer) error {
+func (e *ProxyError) WriteJSON(w io.Writer) error {
 	type JSONSchema struct {
 		Status  int    `json:"status"`
 		Message string `json:"message"`

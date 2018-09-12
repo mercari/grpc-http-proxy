@@ -46,7 +46,7 @@ func TestError_Error(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(fmt.Sprintf("%d", tc.Code), func(t *testing.T) {
-			err := &InternalError{
+			err := &ProxyError{
 				Code: tc.Code,
 			}
 			if got, want := err.Error(), tc.msg; got != want {
@@ -153,7 +153,7 @@ func TestGRPCError_HTTPStatusCode(t *testing.T) {
 }
 
 func TestInternalError_WriteJSON(t *testing.T) {
-	err := &InternalError{
+	err := &ProxyError{
 		Code:    Unknown,
 		Message: "test error",
 	}

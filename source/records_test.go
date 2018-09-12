@@ -27,7 +27,7 @@ func TestRecords_GetRecord(t *testing.T) {
 		service string
 		version string
 		url     *url.URL
-		err     *errors.InternalError
+		err     *errors.ProxyError
 	}{
 		{
 			name:    "resolved (multi-version)",
@@ -41,7 +41,7 @@ func TestRecords_GetRecord(t *testing.T) {
 			service: "a",
 			version: "",
 			url:     nil,
-			err: &errors.InternalError{
+			err: &errors.ProxyError{
 				Code: errors.VersionNotSpecified,
 				Message: fmt.Sprintf("There are multiple version of the gRPC service %s available. "+
 					"You must specify one", "a"),
@@ -52,7 +52,7 @@ func TestRecords_GetRecord(t *testing.T) {
 			service: "a",
 			version: "v3",
 			url:     nil,
-			err: &errors.InternalError{
+			err: &errors.ProxyError{
 				Code:    errors.ServiceUnresolvable,
 				Message: fmt.Sprintf("Version %s of the gRPC service %s is unresolvable", "v3", "a"),
 			},
@@ -69,7 +69,7 @@ func TestRecords_GetRecord(t *testing.T) {
 			service: "c",
 			version: "",
 			url:     nil,
-			err: &errors.InternalError{
+			err: &errors.ProxyError{
 				Code:    errors.ServiceUnresolvable,
 				Message: fmt.Sprintf("The gRPC service %s is unresolvable", "c"),
 			},
@@ -79,7 +79,7 @@ func TestRecords_GetRecord(t *testing.T) {
 			service: "d",
 			version: "",
 			url:     nil,
-			err: &errors.InternalError{
+			err: &errors.ProxyError{
 				Code: errors.VersionUndecidable,
 				Message: fmt.Sprintf("Multiple possible backends found for the gRPC service %s. "+
 					"Add annotations to distinguish versions", "d"),
@@ -90,7 +90,7 @@ func TestRecords_GetRecord(t *testing.T) {
 			service: "e",
 			version: "v1",
 			url:     nil,
-			err: &errors.InternalError{
+			err: &errors.ProxyError{
 				Code: errors.VersionUndecidable,
 				Message: fmt.Sprintf("Multiple possible backends found for the gRPC service %s. "+
 					"Add annotations to distinguish versions", "e"),
@@ -127,8 +127,8 @@ func TestRecords_GetRecord(t *testing.T) {
 				if tc.err != nil {
 					t.Fatalf("got: %v, want %v", nil, tc.err)
 				}
-			case *errors.InternalError:
-				err2, ok := err.(*errors.InternalError)
+			case *errors.ProxyError:
+				err2, ok := err.(*errors.ProxyError)
 				if !ok {
 					t.Fatalf("err was not *proxy.Error")
 				}

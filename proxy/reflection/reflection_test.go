@@ -86,7 +86,7 @@ func TestReflectionClient_ResolveService(t *testing.T) {
 		name        string
 		serviceName string
 		descIsNil   bool
-		error       *perrors.InternalError
+		error       *perrors.ProxyError
 	}{
 		{
 			name:        "found",
@@ -98,7 +98,7 @@ func TestReflectionClient_ResolveService(t *testing.T) {
 			name:        "not found",
 			serviceName: proxytest.NotFoundService,
 			descIsNil:   true,
-			error: &perrors.InternalError{
+			error: &perrors.ProxyError{
 				Code:    perrors.ServiceNotFound,
 				Message: fmt.Sprintf("service %s was not found upstream", "not.found.NoService"),
 			},
@@ -113,7 +113,7 @@ func TestReflectionClient_ResolveService(t *testing.T) {
 				t.Fatalf("got %t, want %t", got, want)
 			}
 			{
-				err, ok := err.(*perrors.InternalError)
+				err, ok := err.(*perrors.ProxyError)
 				if !ok {
 					err = nil
 				}
@@ -130,7 +130,7 @@ func TestServiceDescriptor_FindMethodByName(t *testing.T) {
 		name       string
 		methodName string
 		descIsNil  bool
-		error      *perrors.InternalError
+		error      *perrors.ProxyError
 	}{
 		{
 			name:       "method found",
@@ -142,7 +142,7 @@ func TestServiceDescriptor_FindMethodByName(t *testing.T) {
 			name:       "method not found",
 			methodName: proxytest.NotFoundCall,
 			descIsNil:  true,
-			error: &perrors.InternalError{
+			error: &perrors.ProxyError{
 				Code:    perrors.MethodNotFound,
 				Message: fmt.Sprintf("the method %s was not found", proxytest.NotFoundCall),
 			},
@@ -160,7 +160,7 @@ func TestServiceDescriptor_FindMethodByName(t *testing.T) {
 				t.Fatalf("got %t, want %t", got, want)
 			}
 			{
-				err, ok := err.(*perrors.InternalError)
+				err, ok := err.(*perrors.ProxyError)
 				if !ok {
 					err = nil
 				}
@@ -298,7 +298,7 @@ func TestMessage_UnmarshalJSON(t *testing.T) {
 		{
 			name: "type mismatch",
 			json: []byte("{\"body\":\"hello!\""),
-			error: &perrors.InternalError{
+			error: &perrors.ProxyError{
 				Code:    perrors.MessageTypeMismatch,
 				Message: "input JSON does not match messageImpl type",
 			},
