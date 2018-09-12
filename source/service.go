@@ -165,27 +165,8 @@ func (k *Service) eventHandler(evt Event) {
 			)
 			return
 		}
-		port, ok := selectPort(evt.Svc.Spec.Ports)
+		u, ok := k.constructURL(evt.Svc)
 		if !ok {
-			k.logger.Debug("skipping service because of invalid ports",
-				zap.String("namespace", evt.Svc.Namespace),
-				zap.String("name", evt.Svc.Name),
-			)
-			return
-		}
-
-		rawurl := fmt.Sprintf("%s.%s.svc.cluster.local:%d",
-			evt.Svc.Name,
-			evt.Svc.Namespace,
-			port,
-		)
-		u, err := url.Parse(rawurl)
-		if err != nil {
-			k.logger.Error("failure in processing change to Service",
-				zap.String("namespace", evt.Svc.Namespace),
-				zap.String("name", evt.Svc.Name),
-				zap.String("err", err.Error()),
-			)
 			return
 		}
 		gRPCServiceName := evt.Svc.Annotations[serviceNameAnnotationKey]
@@ -204,27 +185,8 @@ func (k *Service) eventHandler(evt Event) {
 			)
 			return
 		}
-		port, ok := selectPort(evt.Svc.Spec.Ports)
+		u, ok := k.constructURL(evt.Svc)
 		if !ok {
-			k.logger.Debug("skipping service because of invalid ports",
-				zap.String("namespace", evt.Svc.Namespace),
-				zap.String("name", evt.Svc.Name),
-			)
-			return
-		}
-
-		rawurl := fmt.Sprintf("%s.%s.svc.cluster.local:%d",
-			evt.Svc.Name,
-			evt.Svc.Namespace,
-			port,
-		)
-		u, err := url.Parse(rawurl)
-		if err != nil {
-			k.logger.Error("failure in processing change to Service",
-				zap.String("namespace", evt.Svc.Namespace),
-				zap.String("name", evt.Svc.Name),
-				zap.String("err", err.Error()),
-			)
 			return
 		}
 		gRPCServiceName := evt.Svc.Annotations[serviceNameAnnotationKey]
@@ -253,50 +215,13 @@ func (k *Service) eventHandler(evt Event) {
 
 			if oldGRPCServiceName != gRPCServiceName {
 				// gRPC service name was changed
-				oldPort, ok := selectPort(evt.OldSvc.Spec.Ports)
+				oldURL, ok := k.constructURL(evt.OldSvc)
 				if !ok {
-					k.logger.Debug("skipping service because of invalid ports",
-						zap.String("namespace", evt.OldSvc.Namespace),
-						zap.String("name", evt.OldSvc.Name),
-					)
-					return
-				}
-				oldRawurl := fmt.Sprintf("%s.%s.svc.cluster.local:%d",
-					evt.OldSvc.Name,
-					evt.OldSvc.Namespace,
-					oldPort,
-				)
-				oldURL, err := url.Parse(oldRawurl)
-				if err != nil {
-					k.logger.Error("failure in processing change to Service",
-						zap.String("namespace", evt.Svc.Namespace),
-						zap.String("name", evt.Svc.Name),
-						zap.String("err", err.Error()),
-					)
 					return
 				}
 				k.Records.RemoveRecord(oldGRPCServiceName, oldVersion, oldURL)
-				port, ok := selectPort(evt.Svc.Spec.Ports)
+				u, ok := k.constructURL(evt.Svc)
 				if !ok {
-					k.logger.Debug("not adding new version of service because of invalid ports",
-						zap.String("namespace", evt.Svc.Namespace),
-						zap.String("name", evt.Svc.Name),
-					)
-					return
-				}
-
-				rawurl := fmt.Sprintf("%s.%s.svc.cluster.local:%d",
-					evt.Svc.Name,
-					evt.Svc.Namespace,
-					port,
-				)
-				u, err := url.Parse(rawurl)
-				if err != nil {
-					k.logger.Error("failure in processing change to Service",
-						zap.String("namespace", evt.Svc.Namespace),
-						zap.String("name", evt.Svc.Name),
-						zap.String("err", err.Error()),
-					)
 					return
 				}
 				k.Records.SetRecord(gRPCServiceName, version, u)
@@ -305,49 +230,13 @@ func (k *Service) eventHandler(evt Event) {
 
 			if version != oldVersion {
 				// version annotation was changed
-				oldPort, ok := selectPort(evt.OldSvc.Spec.Ports)
+				oldURL, ok := k.constructURL(evt.OldSvc)
 				if !ok {
-					k.logger.Debug("skipping service because of invalid ports",
-						zap.String("namespace", evt.OldSvc.Namespace),
-						zap.String("name", evt.OldSvc.Name),
-					)
-					return
-				}
-				oldRawurl := fmt.Sprintf("%s.%s.svc.cluster.local:%d",
-					evt.OldSvc.Name,
-					evt.OldSvc.Namespace,
-					oldPort,
-				)
-				oldURL, err := url.Parse(oldRawurl)
-				if err != nil {
-					k.logger.Error("failure in processing change to Service",
-						zap.String("namespace", evt.Svc.Namespace),
-						zap.String("name", evt.Svc.Name),
-						zap.String("err", err.Error()),
-					)
 					return
 				}
 				k.Records.RemoveRecord(oldGRPCServiceName, oldVersion, oldURL)
-				port, ok := selectPort(evt.Svc.Spec.Ports)
+				u, ok := k.constructURL(evt.Svc)
 				if !ok {
-					k.logger.Debug("not adding new version of service because of invalid ports",
-						zap.String("namespace", evt.Svc.Namespace),
-						zap.String("name", evt.Svc.Name),
-					)
-					return
-				}
-				rawurl := fmt.Sprintf("%s.%s.svc.cluster.local:%d",
-					evt.Svc.Name,
-					evt.Svc.Namespace,
-					port,
-				)
-				u, err := url.Parse(rawurl)
-				if err != nil {
-					k.logger.Error("failure in processing change to Service",
-						zap.String("namespace", evt.Svc.Namespace),
-						zap.String("name", evt.Svc.Name),
-						zap.String("err", err.Error()),
-					)
 					return
 				}
 				k.Records.SetRecord(gRPCServiceName, version, u)
@@ -361,26 +250,8 @@ func (k *Service) eventHandler(evt Event) {
 
 			if !k.Records.RecordExists(gRPCServiceName, version) {
 				// Record is missing, so add it
-				port, ok := selectPort(evt.Svc.Spec.Ports)
+				u, ok := k.constructURL(evt.Svc)
 				if !ok {
-					k.logger.Debug("not adding new version of service because of invalid ports",
-						zap.String("namespace", evt.Svc.Namespace),
-						zap.String("name", evt.Svc.Name),
-					)
-					return
-				}
-				rawurl := fmt.Sprintf("%s.%s.svc.cluster.local:%d",
-					evt.Svc.Name,
-					evt.Svc.Namespace,
-					port,
-				)
-				u, err := url.Parse(rawurl)
-				if err != nil {
-					k.logger.Error("failure in processing change to Service",
-						zap.String("namespace", evt.Svc.Namespace),
-						zap.String("name", evt.Svc.Name),
-						zap.String("err", err.Error()),
-					)
 					return
 				}
 				k.Records.SetRecord(gRPCServiceName, version, u)
@@ -394,49 +265,13 @@ func (k *Service) eventHandler(evt Event) {
 
 			if !reflect.DeepEqual(evt.Svc.Spec.Ports, evt.OldSvc.Spec.Ports) {
 				// ports were updated
-				oldPort, ok := selectPort(evt.OldSvc.Spec.Ports)
+				oldURL, ok := k.constructURL(evt.OldSvc)
 				if !ok {
-					k.logger.Debug("skipping service because of invalid ports",
-						zap.String("namespace", evt.OldSvc.Namespace),
-						zap.String("name", evt.OldSvc.Name),
-					)
-					return
-				}
-				oldRawurl := fmt.Sprintf("%s.%s.svc.cluster.local:%d",
-					evt.OldSvc.Name,
-					evt.OldSvc.Namespace,
-					oldPort,
-				)
-				oldURL, err := url.Parse(oldRawurl)
-				if err != nil {
-					k.logger.Error("failure in processing change to Service",
-						zap.String("namespace", evt.Svc.Namespace),
-						zap.String("name", evt.Svc.Name),
-						zap.String("err", err.Error()),
-					)
 					return
 				}
 				k.Records.RemoveRecord(oldGRPCServiceName, oldVersion, oldURL)
-				port, ok := selectPort(evt.Svc.Spec.Ports)
+				u, ok := k.constructURL(evt.Svc)
 				if !ok {
-					k.logger.Debug("not adding new version of service because of invalid ports",
-						zap.String("namespace", evt.Svc.Namespace),
-						zap.String("name", evt.Svc.Name),
-					)
-					return
-				}
-				rawurl := fmt.Sprintf("%s.%s.svc.cluster.local:%d",
-					evt.Svc.Name,
-					evt.Svc.Namespace,
-					port,
-				)
-				u, err := url.Parse(rawurl)
-				if err != nil {
-					k.logger.Error("failure in processing change to Service",
-						zap.String("namespace", evt.Svc.Namespace),
-						zap.String("name", evt.Svc.Name),
-						zap.String("err", err.Error()),
-					)
 					return
 				}
 				k.Records.SetRecord(gRPCServiceName, version, u)
@@ -454,26 +289,8 @@ func (k *Service) eventHandler(evt Event) {
 
 		// gRPC service annotation was removed from the Service
 		if !metav1.HasAnnotation(evt.Svc.ObjectMeta, serviceNameAnnotationKey) {
-			oldPort, ok := selectPort(evt.OldSvc.Spec.Ports)
+			oldURL, ok := k.constructURL(evt.OldSvc)
 			if !ok {
-				k.logger.Debug("skipping service because of invalid ports",
-					zap.String("namespace", evt.OldSvc.Namespace),
-					zap.String("name", evt.OldSvc.Name),
-				)
-				return
-			}
-			oldRawurl := fmt.Sprintf("%s.%s.svc.cluster.local:%d",
-				evt.OldSvc.Name,
-				evt.OldSvc.Namespace,
-				oldPort,
-			)
-			oldURL, err := url.Parse(oldRawurl)
-			if err != nil {
-				k.logger.Error("failure in processing change to Service",
-					zap.String("namespace", evt.Svc.Namespace),
-					zap.String("name", evt.Svc.Name),
-					zap.String("err", err.Error()),
-				)
 				return
 			}
 			oldGRPCServiceName := evt.OldSvc.Annotations[serviceNameAnnotationKey]
@@ -485,26 +302,8 @@ func (k *Service) eventHandler(evt Event) {
 		// gRPC service annotation was added to the Service
 		gRPCServiceName := evt.Svc.Annotations[serviceNameAnnotationKey]
 		version := evt.Svc.Annotations[serviceVersionAnnotationKey]
-		port, ok := selectPort(evt.Svc.Spec.Ports)
+		u, ok := k.constructURL(evt.Svc)
 		if !ok {
-			k.logger.Debug("not adding new version of service because of invalid ports",
-				zap.String("namespace", evt.Svc.Namespace),
-				zap.String("name", evt.Svc.Name),
-			)
-			return
-		}
-		rawurl := fmt.Sprintf("%s.%s.svc.cluster.local:%d",
-			evt.Svc.Name,
-			evt.Svc.Namespace,
-			port,
-		)
-		u, err := url.Parse(rawurl)
-		if err != nil {
-			k.logger.Error("failure in processing change to Service",
-				zap.String("namespace", evt.Svc.Namespace),
-				zap.String("name", evt.Svc.Name),
-				zap.String("err", err.Error()),
-			)
 			return
 		}
 		k.Records.SetRecord(gRPCServiceName, version, u)
@@ -514,6 +313,33 @@ func (k *Service) eventHandler(evt Event) {
 			zap.String("url", u.String()),
 		)
 	}
+}
+
+// constructURL is a helper method that constructs URLs by obtaining necessary information from the Service
+func (k *Service) constructURL(svc *core.Service) (*url.URL, bool) {
+	port, ok := selectPort(svc.Spec.Ports)
+	if !ok {
+		k.logger.Debug("not adding new version of service because of invalid ports",
+			zap.String("namespace", svc.Namespace),
+			zap.String("name", svc.Name),
+		)
+		return nil, false
+	}
+	rawurl := fmt.Sprintf("%s.%s.svc.cluster.local:%d",
+		svc.Name,
+		svc.Namespace,
+		port,
+	)
+	u, err := url.Parse(rawurl)
+	if err != nil {
+		k.logger.Error("failure in processing change to Service",
+			zap.String("namespace", svc.Namespace),
+			zap.String("name", svc.Name),
+			zap.String("err", err.Error()),
+		)
+		return nil, false
+	}
+	return u, true
 }
 
 // selectPort selects a port from the Service
