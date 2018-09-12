@@ -3,6 +3,8 @@ package source
 import (
 	"fmt"
 	"net/url"
+	"reflect"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -154,22 +156,35 @@ func (k *Service) processNextItem() bool {
 }
 
 func (k *Service) eventHandler(evt Event) {
-	rawurl := fmt.Sprintf("%s.%s.svc.cluster.local", evt.Svc.Name, evt.Svc.Namespace)
-	u, err := url.Parse(rawurl)
-	if err != nil {
-		k.logger.Error("failure in processing change to Service",
-			zap.String("namespace", evt.Svc.Namespace),
-			zap.String("name", evt.Svc.Name),
-			zap.String("err", err.Error()),
-		)
-		return
-	}
 	switch evt.EventType {
 	case createEvent:
 		if !metav1.HasAnnotation(evt.Svc.ObjectMeta, serviceNameAnnotationKey) {
 			k.logger.Debug("skipping service because of no annotation",
 				zap.String("namespace", evt.Svc.Namespace),
 				zap.String("name", evt.Svc.Name),
+			)
+			return
+		}
+		port, ok := selectPort(evt.Svc.Spec.Ports)
+		if !ok {
+			k.logger.Debug("skipping service because of invalid ports",
+				zap.String("namespace", evt.Svc.Namespace),
+				zap.String("name", evt.Svc.Name),
+			)
+			return
+		}
+
+		rawurl := fmt.Sprintf("%s.%s.svc.cluster.local:%d",
+			evt.Svc.Name,
+			evt.Svc.Namespace,
+			port,
+		)
+		u, err := url.Parse(rawurl)
+		if err != nil {
+			k.logger.Error("failure in processing change to Service",
+				zap.String("namespace", evt.Svc.Namespace),
+				zap.String("name", evt.Svc.Name),
+				zap.String("err", err.Error()),
 			)
 			return
 		}
@@ -186,6 +201,29 @@ func (k *Service) eventHandler(evt Event) {
 			k.logger.Debug("skipping service because of no annotation",
 				zap.String("namespace", evt.Svc.Namespace),
 				zap.String("name", evt.Svc.Name),
+			)
+			return
+		}
+		port, ok := selectPort(evt.Svc.Spec.Ports)
+		if !ok {
+			k.logger.Debug("skipping service because of invalid ports",
+				zap.String("namespace", evt.Svc.Namespace),
+				zap.String("name", evt.Svc.Name),
+			)
+			return
+		}
+
+		rawurl := fmt.Sprintf("%s.%s.svc.cluster.local:%d",
+			evt.Svc.Name,
+			evt.Svc.Namespace,
+			port,
+		)
+		u, err := url.Parse(rawurl)
+		if err != nil {
+			k.logger.Error("failure in processing change to Service",
+				zap.String("namespace", evt.Svc.Namespace),
+				zap.String("name", evt.Svc.Name),
+				zap.String("err", err.Error()),
 			)
 			return
 		}
@@ -215,9 +253,18 @@ func (k *Service) eventHandler(evt Event) {
 
 			if oldGRPCServiceName != gRPCServiceName {
 				// gRPC service name was changed
-				oldRawurl := fmt.Sprintf("%s.%s.svc.cluster.local",
+				oldPort, ok := selectPort(evt.OldSvc.Spec.Ports)
+				if !ok {
+					k.logger.Debug("skipping service because of invalid ports",
+						zap.String("namespace", evt.OldSvc.Namespace),
+						zap.String("name", evt.OldSvc.Name),
+					)
+					return
+				}
+				oldRawurl := fmt.Sprintf("%s.%s.svc.cluster.local:%d",
 					evt.OldSvc.Name,
 					evt.OldSvc.Namespace,
+					oldPort,
 				)
 				oldURL, err := url.Parse(oldRawurl)
 				if err != nil {
@@ -229,15 +276,47 @@ func (k *Service) eventHandler(evt Event) {
 					return
 				}
 				k.Records.RemoveRecord(oldGRPCServiceName, oldVersion, oldURL)
-				k.Records.SetRecord(gRPCServiceName, version, oldURL)
+				port, ok := selectPort(evt.Svc.Spec.Ports)
+				if !ok {
+					k.logger.Debug("not adding new version of service because of invalid ports",
+						zap.String("namespace", evt.Svc.Namespace),
+						zap.String("name", evt.Svc.Name),
+					)
+					return
+				}
+
+				rawurl := fmt.Sprintf("%s.%s.svc.cluster.local:%d",
+					evt.Svc.Name,
+					evt.Svc.Namespace,
+					port,
+				)
+				u, err := url.Parse(rawurl)
+				if err != nil {
+					k.logger.Error("failure in processing change to Service",
+						zap.String("namespace", evt.Svc.Namespace),
+						zap.String("name", evt.Svc.Name),
+						zap.String("err", err.Error()),
+					)
+					return
+				}
+				k.Records.SetRecord(gRPCServiceName, version, u)
 				return
 			}
 
 			if version != oldVersion {
 				// version annotation was changed
-				oldRawurl := fmt.Sprintf("%s.%s.svc.cluster.local",
+				oldPort, ok := selectPort(evt.OldSvc.Spec.Ports)
+				if !ok {
+					k.logger.Debug("skipping service because of invalid ports",
+						zap.String("namespace", evt.OldSvc.Namespace),
+						zap.String("name", evt.OldSvc.Name),
+					)
+					return
+				}
+				oldRawurl := fmt.Sprintf("%s.%s.svc.cluster.local:%d",
 					evt.OldSvc.Name,
 					evt.OldSvc.Namespace,
+					oldPort,
 				)
 				oldURL, err := url.Parse(oldRawurl)
 				if err != nil {
@@ -249,13 +328,123 @@ func (k *Service) eventHandler(evt Event) {
 					return
 				}
 				k.Records.RemoveRecord(oldGRPCServiceName, oldVersion, oldURL)
+				port, ok := selectPort(evt.Svc.Spec.Ports)
+				if !ok {
+					k.logger.Debug("not adding new version of service because of invalid ports",
+						zap.String("namespace", evt.Svc.Namespace),
+						zap.String("name", evt.Svc.Name),
+					)
+					return
+				}
+				rawurl := fmt.Sprintf("%s.%s.svc.cluster.local:%d",
+					evt.Svc.Name,
+					evt.Svc.Namespace,
+					port,
+				)
+				u, err := url.Parse(rawurl)
+				if err != nil {
+					k.logger.Error("failure in processing change to Service",
+						zap.String("namespace", evt.Svc.Namespace),
+						zap.String("name", evt.Svc.Name),
+						zap.String("err", err.Error()),
+					)
+					return
+				}
 				k.Records.SetRecord(gRPCServiceName, version, u)
+				k.logger.Info("added service",
+					zap.String("service", gRPCServiceName),
+					zap.String("version", version),
+					zap.String("url", u.String()),
+				)
 				return
 			}
 
 			if !k.Records.RecordExists(gRPCServiceName, version) {
 				// Record is missing, so add it
+				port, ok := selectPort(evt.Svc.Spec.Ports)
+				if !ok {
+					k.logger.Debug("not adding new version of service because of invalid ports",
+						zap.String("namespace", evt.Svc.Namespace),
+						zap.String("name", evt.Svc.Name),
+					)
+					return
+				}
+				rawurl := fmt.Sprintf("%s.%s.svc.cluster.local:%d",
+					evt.Svc.Name,
+					evt.Svc.Namespace,
+					port,
+				)
+				u, err := url.Parse(rawurl)
+				if err != nil {
+					k.logger.Error("failure in processing change to Service",
+						zap.String("namespace", evt.Svc.Namespace),
+						zap.String("name", evt.Svc.Name),
+						zap.String("err", err.Error()),
+					)
+					return
+				}
 				k.Records.SetRecord(gRPCServiceName, version, u)
+				k.logger.Info("added service",
+					zap.String("service", gRPCServiceName),
+					zap.String("version", version),
+					zap.String("url", u.String()),
+				)
+				return
+			}
+
+			if !reflect.DeepEqual(evt.Svc.Spec.Ports, evt.OldSvc.Spec.Ports) {
+				// ports were updated
+				oldPort, ok := selectPort(evt.OldSvc.Spec.Ports)
+				if !ok {
+					k.logger.Debug("skipping service because of invalid ports",
+						zap.String("namespace", evt.OldSvc.Namespace),
+						zap.String("name", evt.OldSvc.Name),
+					)
+					return
+				}
+				oldRawurl := fmt.Sprintf("%s.%s.svc.cluster.local:%d",
+					evt.OldSvc.Name,
+					evt.OldSvc.Namespace,
+					oldPort,
+				)
+				oldURL, err := url.Parse(oldRawurl)
+				if err != nil {
+					k.logger.Error("failure in processing change to Service",
+						zap.String("namespace", evt.Svc.Namespace),
+						zap.String("name", evt.Svc.Name),
+						zap.String("err", err.Error()),
+					)
+					return
+				}
+				k.Records.RemoveRecord(oldGRPCServiceName, oldVersion, oldURL)
+				port, ok := selectPort(evt.Svc.Spec.Ports)
+				if !ok {
+					k.logger.Debug("not adding new version of service because of invalid ports",
+						zap.String("namespace", evt.Svc.Namespace),
+						zap.String("name", evt.Svc.Name),
+					)
+					return
+				}
+				rawurl := fmt.Sprintf("%s.%s.svc.cluster.local:%d",
+					evt.Svc.Name,
+					evt.Svc.Namespace,
+					port,
+				)
+				u, err := url.Parse(rawurl)
+				if err != nil {
+					k.logger.Error("failure in processing change to Service",
+						zap.String("namespace", evt.Svc.Namespace),
+						zap.String("name", evt.Svc.Name),
+						zap.String("err", err.Error()),
+					)
+					return
+				}
+				k.Records.SetRecord(gRPCServiceName, version, u)
+				k.logger.Info("added service",
+					zap.String("service", gRPCServiceName),
+					zap.String("version", version),
+					zap.String("url", u.String()),
+				)
 				return
 			}
 
@@ -265,9 +454,18 @@ func (k *Service) eventHandler(evt Event) {
 
 		// gRPC service annotation was removed from the Service
 		if !metav1.HasAnnotation(evt.Svc.ObjectMeta, serviceNameAnnotationKey) {
-			oldRawurl := fmt.Sprintf("%s.%s.svc.cluster.local",
+			oldPort, ok := selectPort(evt.OldSvc.Spec.Ports)
+			if !ok {
+				k.logger.Debug("skipping service because of invalid ports",
+					zap.String("namespace", evt.OldSvc.Namespace),
+					zap.String("name", evt.OldSvc.Name),
+				)
+				return
+			}
+			oldRawurl := fmt.Sprintf("%s.%s.svc.cluster.local:%d",
 				evt.OldSvc.Name,
 				evt.OldSvc.Namespace,
+				oldPort,
 			)
 			oldURL, err := url.Parse(oldRawurl)
 			if err != nil {
@@ -287,8 +485,56 @@ func (k *Service) eventHandler(evt Event) {
 		// gRPC service annotation was added to the Service
 		gRPCServiceName := evt.Svc.Annotations[serviceNameAnnotationKey]
 		version := evt.Svc.Annotations[serviceVersionAnnotationKey]
+		port, ok := selectPort(evt.Svc.Spec.Ports)
+		if !ok {
+			k.logger.Debug("not adding new version of service because of invalid ports",
+				zap.String("namespace", evt.Svc.Namespace),
+				zap.String("name", evt.Svc.Name),
+			)
+			return
+		}
+		rawurl := fmt.Sprintf("%s.%s.svc.cluster.local:%d",
+			evt.Svc.Name,
+			evt.Svc.Namespace,
+			port,
+		)
+		u, err := url.Parse(rawurl)
+		if err != nil {
+			k.logger.Error("failure in processing change to Service",
+				zap.String("namespace", evt.Svc.Namespace),
+				zap.String("name", evt.Svc.Name),
+				zap.String("err", err.Error()),
+			)
+			return
+		}
 		k.Records.SetRecord(gRPCServiceName, version, u)
+		k.logger.Info("added service",
+			zap.String("service", gRPCServiceName),
+			zap.String("version", version),
+			zap.String("url", u.String()),
+		)
 	}
+}
+
+// selectPort selects a port from the Service
+// * if there are zero ports, the second return value will be false
+// * if there are exactly one port, that will be returned
+// * if there are more than one port, the first one whose name has the
+//   prefix "grpc" will be returned
+// * if there are no ports with the "grpc" prefix, the second return value will be false
+func selectPort(ports []core.ServicePort) (int32, bool) {
+	if len(ports) == 0 {
+		return 0, false
+	}
+	if len(ports) == 1 {
+		return ports[0].Port, true
+	}
+	for _, p := range ports {
+		if strings.HasPrefix(p.Name, "grpc") {
+			return p.Port, true
+		}
+	}
+	return 0, false
 }
 
 // Event is an change event to a Kubernetes Service

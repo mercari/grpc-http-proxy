@@ -134,13 +134,13 @@ func TestServiceAdded(t *testing.T) {
 			{
 				service: "Echo",
 				version: "v1",
-				url:     parseURL(t, "foo-service.bar-ns.svc.cluster.local"),
+				url:     parseURL(t, "foo-service.bar-ns.svc.cluster.local:5000"),
 				code:    -1,
 			},
 			{
 				service: "Echo",
 				version: "v2",
-				url:     parseURL(t, "foo-service-v2.bar-ns.svc.cluster.local"),
+				url:     parseURL(t, "foo-service-v2.bar-ns.svc.cluster.local:5000"),
 				code:    -1,
 			},
 		}
@@ -318,7 +318,7 @@ func TestServiceDeleted(t *testing.T) {
 			{
 				service: "Echo",
 				version: "",
-				url:     parseURL(t, "foo-service-v2.bar-ns.svc.cluster.local"),
+				url:     parseURL(t, "foo-service-v2.bar-ns.svc.cluster.local:5000"),
 				code:    -1,
 			},
 		}
@@ -495,7 +495,7 @@ func TestServiceUpdated(t *testing.T) {
 			{
 				service: "Ping",
 				version: "v1",
-				url:     parseURL(t, "foo-service.bar-ns.svc.cluster.local"),
+				url:     parseURL(t, "foo-service.bar-ns.svc.cluster.local:5000"),
 				code:    -1,
 			},
 		}
@@ -550,7 +550,7 @@ func TestServiceUpdated(t *testing.T) {
 			{
 				service: "Echo",
 				version: "v2",
-				url:     parseURL(t, "foo-service.bar-ns.svc.cluster.local"),
+				url:     parseURL(t, "foo-service.bar-ns.svc.cluster.local:5000"),
 				code:    -1,
 			},
 		}
@@ -605,7 +605,7 @@ func TestServiceUpdated(t *testing.T) {
 			{
 				service: "Echo",
 				version: "v2",
-				url:     parseURL(t, "foo-service-v2.bar-ns.svc.cluster.local"),
+				url:     parseURL(t, "foo-service-v2.bar-ns.svc.cluster.local:5000"),
 				code:    -1,
 			},
 		}
@@ -674,7 +674,7 @@ func TestServiceUpdated(t *testing.T) {
 			{
 				service: "Echo",
 				version: "v1",
-				url:     parseURL(t, "foo-service.bar-ns.svc.cluster.local"),
+				url:     parseURL(t, "foo-service.bar-ns.svc.cluster.local:5000"),
 				code:    -1,
 			},
 		}
@@ -767,4 +767,73 @@ func TestServiceUpdated(t *testing.T) {
 		time.Sleep(2 * time.Second)
 		checkRecords(t, k, cases)
 	})
+}
+
+func TestSelectPort(t *testing.T) {
+	cases := []struct {
+		name         string
+		servicePorts []core.ServicePort
+		port         int32
+		ok           bool
+	}{
+		{
+			name: "single",
+			servicePorts: []core.ServicePort{
+				{
+					Name: "foo",
+					Port: 5000,
+				},
+			},
+			port: 5000,
+			ok:   true,
+		},
+		{
+			name: "one with prefix",
+			servicePorts: []core.ServicePort{
+				{
+					Name: "grpc-foo",
+					Port: 5000,
+				},
+				{
+					Name: "bar",
+					Port: 5001,
+				},
+			},
+			port: 5000,
+			ok:   true,
+		},
+		{
+			name: "multiple without prefix",
+			servicePorts: []core.ServicePort{
+				{
+					Name: "foo",
+					Port: 5000,
+				},
+				{
+					Name: "bar",
+					Port: 5001,
+				},
+			},
+			port: 0,
+			ok:   false,
+		},
+		{
+			name:         "none",
+			servicePorts: []core.ServicePort{},
+			port:         0,
+			ok:           false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			port, ok := selectPort(tc.servicePorts)
+			if got, want := port, tc.port; got != want {
+				t.Fatalf("got %d, want %d", got, want)
+			}
+			if got, want := ok, tc.ok; got != want {
+				t.Fatalf("got %t, want %t", got, want)
+			}
+		})
+	}
 }
