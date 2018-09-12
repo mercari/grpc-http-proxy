@@ -240,11 +240,6 @@ func (k *Service) eventHandler(evt Event) {
 					return
 				}
 				k.Records.SetRecord(gRPCServiceName, version, u)
-				k.logger.Info("added service",
-					zap.String("service", gRPCServiceName),
-					zap.String("version", version),
-					zap.String("url", u.String()),
-				)
 				return
 			}
 
@@ -255,11 +250,6 @@ func (k *Service) eventHandler(evt Event) {
 					return
 				}
 				k.Records.SetRecord(gRPCServiceName, version, u)
-				k.logger.Info("added service",
-					zap.String("service", gRPCServiceName),
-					zap.String("version", version),
-					zap.String("url", u.String()),
-				)
 				return
 			}
 
@@ -275,11 +265,6 @@ func (k *Service) eventHandler(evt Event) {
 					return
 				}
 				k.Records.SetRecord(gRPCServiceName, version, u)
-				k.logger.Info("added service",
-					zap.String("service", gRPCServiceName),
-					zap.String("version", version),
-					zap.String("url", u.String()),
-				)
 				return
 			}
 
@@ -307,11 +292,6 @@ func (k *Service) eventHandler(evt Event) {
 			return
 		}
 		k.Records.SetRecord(gRPCServiceName, version, u)
-		k.logger.Info("added service",
-			zap.String("service", gRPCServiceName),
-			zap.String("version", version),
-			zap.String("url", u.String()),
-		)
 	}
 }
 
