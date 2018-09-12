@@ -38,6 +38,8 @@ func main() {
 		os.Exit(1)
 	}
 	d := source.NewService(k8sClient, "", logger)
+	stopCh := make(chan struct{})
+	d.Run(stopCh)
 	s := http.New(env.Token, d, logger)
 	logger.Info("starting grpc-http-proxy",
 		zap.String("log_level", env.LogLevel),
