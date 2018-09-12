@@ -31,6 +31,7 @@ type stubImpl struct {
 }
 
 type grpcdynamicStub interface {
+	// This must be InvokeRpc with lower-case 'p' and 'c', because that is how the protoreflect library
 	InvokeRpc(ctx context.Context, method *desc.MethodDescriptor, request proto.Message, opts ...grpc.CallOption) (proto.Message, error)
 }
 
