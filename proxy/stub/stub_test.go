@@ -5,29 +5,16 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/jhump/protoreflect/desc"
-	"github.com/jhump/protoreflect/dynamic"
 	"github.com/jhump/protoreflect/dynamic/grpcdynamic"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	_ "google.golang.org/grpc/test/grpc_testing"
 
 	"github.com/mercari/grpc-http-proxy/errors"
 	"github.com/mercari/grpc-http-proxy/metadata"
+	"github.com/mercari/grpc-http-proxy/proxy/proxytest"
 	"github.com/mercari/grpc-http-proxy/proxy/reflection"
 )
-
-type fakeGrpcdynamicStub struct{}
-
-func (m *fakeGrpcdynamicStub) InvokeRpc(ctx context.Context, method *desc.MethodDescriptor, request proto.Message, opts ...grpc.CallOption) (proto.Message, error) {
-	if method.GetName() == "UnaryCall" {
-		return nil, status.Error(codes.Unimplemented, "unary unimplemented")
-	}
-	output := dynamic.NewMessage(method.GetOutputType())
-	return output, nil
-}
 
 func TestNewStub(t *testing.T) {
 	cc, err := grpc.Dial("localhost:5000", grpc.WithInsecure())
@@ -60,14 +47,11 @@ func TestStub_InvokeRPC(t *testing.T) {
 			},
 		},
 	}
-	const fileName = "grpc_testing/test.proto"
-	const target = "localhost:5000"
-	const serviceName = "grpc.testing.TestService"
-	fileDesc := newFileDescriptor(t, fileName)
+	fileDesc := proxytest.NewFileDescriptor(t, proxytest.File)
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			serviceDesc := reflection.ServiceDescriptorFromFileDescriptor(fileDesc, serviceName)
+			serviceDesc := reflection.ServiceDescriptorFromFileDescriptor(fileDesc, proxytest.TestService)
 			if serviceDesc == nil {
 				t.Fatal("service descriptor is nil")
 			}
@@ -80,7 +64,7 @@ func TestStub_InvokeRPC(t *testing.T) {
 			ctx := context.Background()
 
 			stub := &stubImpl{
-				stub: &fakeGrpcdynamicStub{},
+				stub: &proxytest.FakeGrpcdynamicStub{},
 			}
 			invocation := &reflection.MethodInvocation{
 				MethodDescriptor: methodDesc,

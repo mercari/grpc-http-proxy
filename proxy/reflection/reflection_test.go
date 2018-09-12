@@ -6,35 +6,17 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/dynamic"
-	"github.com/pkg/errors"
 	_ "google.golang.org/grpc/test/grpc_testing"
 
 	perrors "github.com/mercari/grpc-http-proxy/errors"
+	"github.com/mercari/grpc-http-proxy/proxy/proxytest"
 )
 
-const (
-	testService     = "grpc.testing.TestService"
-	notFoundService = "not.found.NoService"
-	emptyCall       = "EmptyCall"
-	notFoundCall    = "NotFoundCall"
-	file            = "grpc_testing/test.proto"
-)
-
-type fakeGrpcreflectClient struct {
-	*desc.ServiceDescriptor
-}
-
-func (m *fakeGrpcreflectClient) ResolveService(serviceName string) (*desc.ServiceDescriptor, error) {
-	if serviceName != testService {
-		return nil, errors.Errorf("service not found")
-	}
-	return m.ServiceDescriptor, nil
-}
+const messageName = "grpc.testing.Payload"
 
 func TestNewReflector(t *testing.T) {
-	r := NewReflector(&fakeGrpcreflectClient{})
+	r := NewReflector(&proxytest.FakeGrpcreflectClient{})
 	if r == nil {
 		t.Fatal("reflector should not be nil")
 	}
@@ -51,32 +33,32 @@ func TestReflectorImpl_CreateInvocation(t *testing.T) {
 	}{
 		{
 			name:            "found",
-			serviceName:     testService,
-			methodName:      emptyCall,
+			serviceName:     proxytest.TestService,
+			methodName:      proxytest.EmptyCall,
 			message:         []byte("{}"),
 			invocationIsNil: false,
 			errorIsNil:      true,
 		},
 		{
 			name:            "service not found",
-			serviceName:     notFoundService,
-			methodName:      emptyCall,
+			serviceName:     proxytest.NotFoundService,
+			methodName:      proxytest.EmptyCall,
 			message:         []byte("{}"),
 			invocationIsNil: true,
 			errorIsNil:      false,
 		},
 		{
 			name:            "method not found",
-			serviceName:     testService,
-			methodName:      notFoundCall,
+			serviceName:     proxytest.TestService,
+			methodName:      proxytest.NotFoundCall,
 			message:         []byte("{}"),
 			invocationIsNil: true,
 			errorIsNil:      false,
 		},
 		{
 			name:            "unmarshal failed",
-			serviceName:     testService,
-			methodName:      emptyCall,
+			serviceName:     proxytest.TestService,
+			methodName:      proxytest.EmptyCall,
 			message:         []byte("{"),
 			invocationIsNil: true,
 			errorIsNil:      false,
@@ -85,9 +67,9 @@ func TestReflectorImpl_CreateInvocation(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := context.Background()
-			fd := newFileDescriptor(t, file)
-			sd := ServiceDescriptorFromFileDescriptor(fd, testService)
-			r := NewReflector(&fakeGrpcreflectClient{sd.ServiceDescriptor})
+			fd := proxytest.NewFileDescriptor(t, proxytest.File)
+			sd := ServiceDescriptorFromFileDescriptor(fd, proxytest.TestService)
+			r := NewReflector(&proxytest.FakeGrpcreflectClient{sd.ServiceDescriptor})
 			i, err := r.CreateInvocation(ctx, tc.serviceName, tc.methodName, []byte(tc.message))
 			if got, want := i == nil, tc.invocationIsNil; got != want {
 				t.Fatalf("got %t, want %t", got, want)
@@ -108,13 +90,13 @@ func TestReflectionClient_ResolveService(t *testing.T) {
 	}{
 		{
 			name:        "found",
-			serviceName: "grpc.testing.TestService",
+			serviceName: proxytest.TestService,
 			descIsNil:   false,
 			error:       nil,
 		},
 		{
 			name:        "not found",
-			serviceName: "not.found.NoService",
+			serviceName: proxytest.NotFoundService,
 			descIsNil:   true,
 			error: &perrors.Error{
 				Code:    perrors.ServiceNotFound,
@@ -125,7 +107,7 @@ func TestReflectionClient_ResolveService(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := context.Background()
-			c := newReflectionClient(&fakeGrpcreflectClient{})
+			c := newReflectionClient(&proxytest.FakeGrpcreflectClient{})
 			serviceDesc, err := c.resolveService(ctx, tc.serviceName)
 			if got, want := serviceDesc == nil, tc.descIsNil; got != want {
 				t.Fatalf("got %t, want %t", got, want)
@@ -144,35 +126,32 @@ func TestReflectionClient_ResolveService(t *testing.T) {
 }
 
 func TestServiceDescriptor_FindMethodByName(t *testing.T) {
-	const serviceName = "grpc.testing.TestService"
-	const file = "grpc_testing/test.proto"
 	cases := []struct {
-		name        string
-		serviceName string
-		methodName  string
-		descIsNil   bool
-		error       *perrors.Error
+		name       string
+		methodName string
+		descIsNil  bool
+		error      *perrors.Error
 	}{
 		{
 			name:       "method found",
-			methodName: "EmptyCall",
+			methodName: proxytest.EmptyCall,
 			descIsNil:  false,
 			error:      nil,
 		},
 		{
 			name:       "method not found",
-			methodName: "ThisMethodDoesNotExist",
+			methodName: proxytest.NotFoundCall,
 			descIsNil:  true,
 			error: &perrors.Error{
 				Code:    perrors.MethodNotFound,
-				Message: fmt.Sprintf("the method %s was not found", "ThisMethodDoesNotExist"),
+				Message: fmt.Sprintf("the method %s was not found", proxytest.NotFoundCall),
 			},
 		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			fileDesc := newFileDescriptor(t, file)
-			serviceDesc := ServiceDescriptorFromFileDescriptor(fileDesc, serviceName)
+			file := proxytest.NewFileDescriptor(t, proxytest.File)
+			serviceDesc := ServiceDescriptorFromFileDescriptor(file, proxytest.TestService)
 			if serviceDesc == nil {
 				t.Fatalf("service descriptor is nil")
 			}
@@ -194,8 +173,6 @@ func TestServiceDescriptor_FindMethodByName(t *testing.T) {
 }
 
 func TestServiceDescriptor_GetInputType(t *testing.T) {
-	const serviceName = "grpc.testing.TestService"
-	const file = "grpc_testing/test.proto"
 	cases := []struct {
 		name        string
 		serviceName string
@@ -204,15 +181,15 @@ func TestServiceDescriptor_GetInputType(t *testing.T) {
 	}{
 		{
 			name:        "input type found",
-			serviceName: "TestService",
-			methodName:  "EmptyCall",
+			serviceName: proxytest.TestService,
+			methodName:  proxytest.UnaryCall,
 			descIsNil:   false,
 		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			fileDesc := newFileDescriptor(t, file)
-			serviceDesc := ServiceDescriptorFromFileDescriptor(fileDesc, serviceName)
+			file := proxytest.NewFileDescriptor(t, proxytest.File)
+			serviceDesc := ServiceDescriptorFromFileDescriptor(file, tc.serviceName)
 			methodDesc, err := serviceDesc.FindMethodByName(tc.methodName)
 			if err != nil {
 				t.Fatalf(err.Error())
@@ -226,8 +203,6 @@ func TestServiceDescriptor_GetInputType(t *testing.T) {
 }
 
 func TestServiceDescriptor_GetOutputType(t *testing.T) {
-	const serviceName = "grpc.testing.TestService"
-	const file = "grpc_testing/test.proto"
 	cases := []struct {
 		name        string
 		serviceName string
@@ -236,15 +211,15 @@ func TestServiceDescriptor_GetOutputType(t *testing.T) {
 	}{
 		{
 			name:        "output type found",
-			serviceName: "TestService",
-			methodName:  "EmptyCall",
+			serviceName: proxytest.TestService,
+			methodName:  proxytest.EmptyCall,
 			descIsNil:   false,
 		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			fileDesc := newFileDescriptor(t, file)
-			serviceDesc := ServiceDescriptorFromFileDescriptor(fileDesc, serviceName)
+			file := proxytest.NewFileDescriptor(t, proxytest.File)
+			serviceDesc := ServiceDescriptorFromFileDescriptor(file, tc.serviceName)
 			methodDesc, err := serviceDesc.FindMethodByName(tc.methodName)
 			if err != nil {
 				t.Fatalf(err.Error())
@@ -258,15 +233,12 @@ func TestServiceDescriptor_GetOutputType(t *testing.T) {
 }
 
 func TestMessageDescriptor_NewMessage(t *testing.T) {
-	const serviceName = "grpc.testing.TestService"
-	const methodName = "EmptyCall"
-	const file = "grpc_testing/test.proto"
-	fileDesc := newFileDescriptor(t, file)
-	serviceDesc := ServiceDescriptorFromFileDescriptor(fileDesc, serviceName)
+	file := proxytest.NewFileDescriptor(t, proxytest.File)
+	serviceDesc := ServiceDescriptorFromFileDescriptor(file, proxytest.TestService)
 	if serviceDesc == nil {
 		t.Fatal("service descriptor is nil")
 	}
-	methodDesc, err := serviceDesc.FindMethodByName(methodName)
+	methodDesc, err := serviceDesc.FindMethodByName(proxytest.EmptyCall)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -278,11 +250,7 @@ func TestMessageDescriptor_NewMessage(t *testing.T) {
 }
 
 func TestMessage_MarshalJSON(t *testing.T) {
-	const serviceName = "grpc.testing.TestService"
-	const methodName = "EmptyCall"
-	const file = "grpc_testing/test.proto"
-	const messageName = "grpc.testing.Payload"
-	fileDesc := newFileDescriptor(t, file)
+	file := proxytest.NewFileDescriptor(t, proxytest.File)
 	cases := []struct {
 		name string
 		json []byte
@@ -296,7 +264,7 @@ func TestMessage_MarshalJSON(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			messageDesc := fileDesc.FindMessage(messageName)
+			messageDesc := file.FindMessage(messageName)
 			if messageDesc == nil {
 				t.Fatal("messageImpl descriptor is nil")
 			}
@@ -316,11 +284,7 @@ func TestMessage_MarshalJSON(t *testing.T) {
 }
 
 func TestMessage_UnmarshalJSON(t *testing.T) {
-	const serviceName = "grpc.testing.TestService"
-	const methodName = "EmptyCall"
-	const file = "grpc_testing/test.proto"
-	const messageName = "grpc.testing.Payload"
-	fileDesc := newFileDescriptor(t, file)
+	file := proxytest.NewFileDescriptor(t, proxytest.File)
 	cases := []struct {
 		name string
 		json []byte
@@ -343,7 +307,7 @@ func TestMessage_UnmarshalJSON(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			messageDesc := fileDesc.FindMessage(messageName)
+			messageDesc := file.FindMessage(messageName)
 			if messageDesc == nil {
 				t.Fatal("messageImpl descriptor is nil")
 			}

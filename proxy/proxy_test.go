@@ -4,52 +4,13 @@ import (
 	"context"
 	"testing"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/jhump/protoreflect/desc"
-	"github.com/jhump/protoreflect/dynamic"
-	"github.com/pkg/errors"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	_ "google.golang.org/grpc/test/grpc_testing"
 
 	"github.com/mercari/grpc-http-proxy/metadata"
+	"github.com/mercari/grpc-http-proxy/proxy/proxytest"
 	"github.com/mercari/grpc-http-proxy/proxy/reflection"
 	pstub "github.com/mercari/grpc-http-proxy/proxy/stub"
 )
-
-const (
-	testService     = "grpc.testing.TestService"
-	notFoundService = "not.found.NoService"
-	emptyCall       = "EmptyCall"
-	unaryCall       = "UnaryCall"
-	file            = "grpc_testing/test.proto"
-)
-
-var testError = errors.Errorf("an error")
-
-type fakeGrpcreflectClient struct {
-	*desc.ServiceDescriptor
-}
-
-func (m *fakeGrpcreflectClient) ResolveService(serviceName string) (*desc.ServiceDescriptor, error) {
-	if serviceName != testService {
-		return nil, errors.Errorf("service not found")
-	}
-	return m.ServiceDescriptor, nil
-}
-
-type fakeGrpcdynamicStub struct {
-	failMarshal bool
-}
-
-func (m *fakeGrpcdynamicStub) InvokeRpc(ctx context.Context, method *desc.MethodDescriptor, request proto.Message, opts ...grpc.CallOption) (proto.Message, error) {
-	if method.GetName() == "UnaryCall" {
-		return nil, status.Error(codes.Unimplemented, "unary unimplemented")
-	}
-	output := dynamic.NewMessage(method.GetOutputType())
-	return output, nil
-}
 
 func TestNewProxy(t *testing.T) {
 	p := NewProxy()
@@ -60,7 +21,7 @@ func TestNewProxy(t *testing.T) {
 
 func TestProxy_Connect(t *testing.T) {
 	p := NewProxy()
-	p.Connect(context.Background(), parseURL(t, "localhost:5000"))
+	p.Connect(context.Background(), proxytest.ParseURL(t, "localhost:5000"))
 }
 
 func TestProxy_Call(t *testing.T) {
@@ -69,12 +30,12 @@ func TestProxy_Call(t *testing.T) {
 		ctx := context.Background()
 		md := make(metadata.Metadata)
 
-		p.stub = pstub.NewStub(&fakeGrpcdynamicStub{})
-		fd := newFileDescriptor(t, file)
-		sd := reflection.ServiceDescriptorFromFileDescriptor(fd, testService)
-		p.reflector = reflection.NewReflector(&fakeGrpcreflectClient{ServiceDescriptor: sd.ServiceDescriptor})
+		p.stub = pstub.NewStub(&proxytest.FakeGrpcdynamicStub{})
+		fd := proxytest.NewFileDescriptor(t, proxytest.File)
+		sd := reflection.ServiceDescriptorFromFileDescriptor(fd, proxytest.TestService)
+		p.reflector = reflection.NewReflector(&proxytest.FakeGrpcreflectClient{ServiceDescriptor: sd.ServiceDescriptor})
 
-		_, err := p.Call(ctx, testService, emptyCall, []byte("{}"), &md)
+		_, err := p.Call(ctx, proxytest.TestService, proxytest.EmptyCall, []byte("{}"), &md)
 		if err != nil {
 			t.Fatalf("err should be nil, got %s", err.Error())
 		}
@@ -85,10 +46,10 @@ func TestProxy_Call(t *testing.T) {
 		ctx := context.Background()
 		md := make(metadata.Metadata)
 
-		p.stub = pstub.NewStub(&fakeGrpcdynamicStub{})
-		p.reflector = reflection.NewReflector(&fakeGrpcreflectClient{})
+		p.stub = pstub.NewStub(&proxytest.FakeGrpcdynamicStub{})
+		p.reflector = reflection.NewReflector(&proxytest.FakeGrpcreflectClient{})
 
-		_, err := p.Call(ctx, notFoundService, emptyCall, []byte("{}"), &md)
+		_, err := p.Call(ctx, proxytest.NotFoundService, proxytest.EmptyCall, []byte("{}"), &md)
 		if err == nil {
 			t.Fatalf("err should be not nil")
 		}
@@ -99,12 +60,12 @@ func TestProxy_Call(t *testing.T) {
 		ctx := context.Background()
 		md := make(metadata.Metadata)
 
-		p.stub = pstub.NewStub(&fakeGrpcdynamicStub{})
-		fd := newFileDescriptor(t, file)
-		sd := reflection.ServiceDescriptorFromFileDescriptor(fd, testService)
-		p.reflector = reflection.NewReflector(&fakeGrpcreflectClient{ServiceDescriptor: sd.ServiceDescriptor})
+		p.stub = pstub.NewStub(&proxytest.FakeGrpcdynamicStub{})
+		fd := proxytest.NewFileDescriptor(t, proxytest.File)
+		sd := reflection.ServiceDescriptorFromFileDescriptor(fd, proxytest.TestService)
+		p.reflector = reflection.NewReflector(&proxytest.FakeGrpcreflectClient{ServiceDescriptor: sd.ServiceDescriptor})
 
-		_, err := p.Call(ctx, testService, unaryCall, []byte("{}"), &md)
+		_, err := p.Call(ctx, proxytest.TestService, proxytest.UnaryCall, []byte("{}"), &md)
 		if err == nil {
 			t.Fatalf("err should be not nil")
 		}
