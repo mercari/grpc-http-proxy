@@ -10,6 +10,7 @@ import (
 	perrors "github.com/mercari/grpc-http-proxy/errors"
 	"github.com/mercari/grpc-http-proxy/metadata"
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 )
 
 type callee struct {
@@ -63,6 +64,8 @@ func (s *Server) RPCCallHandler(newClient func() Client) http.HandlerFunc {
 			grpc_metadata.MD(metadata.MetadataFromHeaders(r.Header)))
 		u, err := s.discoverer.Resolve(c.Service, c.ServiceVersion)
 		if err != nil {
+			s.logger.Error("error in handling call",
+				zap.String("err", err.Error()))
 			returnError(w, errors.Cause(err).(perrors.Error))
 			return
 		}
@@ -78,9 +81,10 @@ func (s *Server) RPCCallHandler(newClient func() Client) http.HandlerFunc {
 		response, err := client.Call(ctx, c.Service, c.Method, inputMessage, &md)
 		if err != nil {
 			returnError(w, errors.Cause(err).(perrors.Error))
+			s.logger.Error("error in handling call",
+				zap.String("err", err.Error()))
 			return
 		}
-		/* TODO(tomoyat1) emit logs based on results */
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
