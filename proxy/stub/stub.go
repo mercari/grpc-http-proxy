@@ -8,11 +8,11 @@ import (
 	"github.com/jhump/protoreflect/desc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
+	grpc_metadata "google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
-	"github.com/mercari/grpc-http-proxy"
 	"github.com/mercari/grpc-http-proxy/errors"
+	"github.com/mercari/grpc-http-proxy/metadata"
 	"github.com/mercari/grpc-http-proxy/proxy/reflection"
 )
 
@@ -23,7 +23,7 @@ type Stub interface {
 	InvokeRPC(
 		ctx context.Context,
 		invocation *reflection.MethodInvocation,
-		md *proxy.Metadata) (reflection.Message, error)
+		md *metadata.Metadata) (reflection.Message, error)
 }
 
 type stubImpl struct {
@@ -45,12 +45,12 @@ func NewStub(s grpcdynamicStub) Stub {
 func (s *stubImpl) InvokeRPC(
 	ctx context.Context,
 	invocation *reflection.MethodInvocation,
-	md *proxy.Metadata) (reflection.Message, error) {
+	md *metadata.Metadata) (reflection.Message, error) {
 
 	o, err := s.stub.InvokeRpc(ctx,
 		invocation.MethodDescriptor.AsProtoreflectDescriptor(),
 		invocation.Message.AsProtoreflectMessage(),
-		grpc.Header((*metadata.MD)(md)))
+		grpc.Header((*grpc_metadata.MD)(md)))
 	if err != nil {
 		stat := status.Convert(err)
 		if err != nil && stat.Code() == codes.Unavailable {

@@ -14,8 +14,8 @@ import (
 	"google.golang.org/grpc/status"
 	_ "google.golang.org/grpc/test/grpc_testing"
 
-	"github.com/mercari/grpc-http-proxy"
 	"github.com/mercari/grpc-http-proxy/errors"
+	"github.com/mercari/grpc-http-proxy/metadata"
 	"github.com/mercari/grpc-http-proxy/proxy/reflection"
 )
 
@@ -86,7 +86,7 @@ func TestStub_InvokeRPC(t *testing.T) {
 				MethodDescriptor: methodDesc,
 				Message:          inputMsg,
 			}
-			outputMsg, err := stub.InvokeRPC(ctx, invocation, (*proxy.Metadata)(&map[string][]string{}))
+			outputMsg, err := stub.InvokeRPC(ctx, invocation, (*metadata.Metadata)(&map[string][]string{}))
 			if err != nil {
 				switch v := err.(type) {
 				case *errors.Error:

@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc"
 	rpb "google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
 
-	"github.com/mercari/grpc-http-proxy"
+	"github.com/mercari/grpc-http-proxy/metadata"
 	"github.com/mercari/grpc-http-proxy/proxy/reflection"
 	pstub "github.com/mercari/grpc-http-proxy/proxy/stub"
 )
@@ -46,8 +46,8 @@ func (p *Proxy) CloseConn() error {
 func (p *Proxy) Call(ctx context.Context,
 	serviceName, methodName string,
 	message []byte,
-	md *proxy.Metadata,
-) (proxy.GRPCResponse, error) {
+	md *metadata.Metadata,
+) ([]byte, error) {
 	invocation, err := p.reflector.CreateInvocation(ctx, serviceName, methodName, message)
 	if err != nil {
 		return nil, err

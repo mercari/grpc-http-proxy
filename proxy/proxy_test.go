@@ -13,8 +13,9 @@ import (
 	"google.golang.org/grpc/status"
 	_ "google.golang.org/grpc/test/grpc_testing"
 
-	"github.com/mercari/grpc-http-proxy"
+	"github.com/mercari/grpc-http-proxy/metadata"
 	"github.com/mercari/grpc-http-proxy/proxy/reflection"
+	pstub "github.com/mercari/grpc-http-proxy/proxy/stub"
 )
 
 const (
@@ -66,9 +67,9 @@ func TestProxy_Call(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		p := NewProxy()
 		ctx := context.Background()
-		md := make(proxy.Metadata)
+		md := make(metadata.Metadata)
 
-		p.stub = stub.NewStub(&fakeGrpcdynamicStub{})
+		p.stub = pstub.NewStub(&fakeGrpcdynamicStub{})
 		fd := newFileDescriptor(t, file)
 		sd := reflection.ServiceDescriptorFromFileDescriptor(fd, testService)
 		p.reflector = reflection.NewReflector(&fakeGrpcreflectClient{ServiceDescriptor: sd.ServiceDescriptor})
@@ -82,9 +83,9 @@ func TestProxy_Call(t *testing.T) {
 	t.Run("reflector fails", func(t *testing.T) {
 		p := NewProxy()
 		ctx := context.Background()
-		md := make(proxy.Metadata)
+		md := make(metadata.Metadata)
 
-		p.stub = stub.NewStub(&fakeGrpcdynamicStub{})
+		p.stub = pstub.NewStub(&fakeGrpcdynamicStub{})
 		p.reflector = reflection.NewReflector(&fakeGrpcreflectClient{})
 
 		_, err := p.Call(ctx, notFoundService, emptyCall, []byte("{}"), &md)
@@ -96,9 +97,9 @@ func TestProxy_Call(t *testing.T) {
 	t.Run("invoking RPC returns error", func(t *testing.T) {
 		p := NewProxy()
 		ctx := context.Background()
-		md := make(proxy.Metadata)
+		md := make(metadata.Metadata)
 
-		p.stub = stub.NewStub(&fakeGrpcdynamicStub{})
+		p.stub = pstub.NewStub(&fakeGrpcdynamicStub{})
 		fd := newFileDescriptor(t, file)
 		sd := reflection.ServiceDescriptorFromFileDescriptor(fd, testService)
 		p.reflector = reflection.NewReflector(&fakeGrpcreflectClient{ServiceDescriptor: sd.ServiceDescriptor})
