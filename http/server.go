@@ -10,6 +10,7 @@ import (
 	"net/url"
 )
 
+// Server is an grpc-http-proxy server
 type Server struct {
 	router      *http.ServeMux
 	accessToken string
@@ -18,6 +19,7 @@ type Server struct {
 	logger      *zap.Logger
 }
 
+// New creates a new Server
 func New(token string,
 	discoverer Discoverer,
 	logger *zap.Logger,
@@ -33,6 +35,7 @@ func New(token string,
 	return s
 }
 
+// Serve starts the Server
 func (s *Server) Serve(ln net.Listener) error {
 	srv := &http.Server{
 		Handler: s.router,

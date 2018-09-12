@@ -19,6 +19,7 @@ type callee struct {
 	Method         string `json:"method"`
 }
 
+// LivenessProbeHandler returns a status code 200 response for liveness probes
 func (s *Server) LivenessProbeHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
@@ -29,12 +30,15 @@ func (s *Server) LivenessProbeHandler() http.HandlerFunc {
 	}
 }
 
+// CatchAllHandler handles requests for non-existing paths
+// This is done explicitly in order to have the logger middleware log the fact
 func (s *Server) CatchAllHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 	}
 }
 
+// RPCCallHandler handles requests for making gRPC calls
 func (s *Server) RPCCallHandler(newClient func() Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
