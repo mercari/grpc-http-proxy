@@ -1,9 +1,9 @@
 package proxytest
 
 import (
+	"context"
 	"testing"
 
-	"context"
 	"github.com/jhump/protoreflect/dynamic"
 	_ "google.golang.org/grpc/test/grpc_testing"
 )

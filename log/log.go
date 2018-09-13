@@ -1,10 +1,11 @@
 package log
 
 import (
+	"strings"
+
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"strings"
 )
 
 func logLevel(level string) (zapcore.Level, error) {

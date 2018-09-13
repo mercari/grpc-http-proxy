@@ -1,11 +1,11 @@
 package errors
 
 import (
+	"encoding/json"
+	"io"
 	"net/http"
 
-	"encoding/json"
 	"google.golang.org/grpc/codes"
-	"io"
 )
 
 type Error interface {

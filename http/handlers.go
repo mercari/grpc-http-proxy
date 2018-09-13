@@ -5,12 +5,12 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/pkg/errors"
+	"go.uber.org/zap"
 	grpc_metadata "google.golang.org/grpc/metadata"
 
 	perrors "github.com/mercari/grpc-http-proxy/errors"
 	"github.com/mercari/grpc-http-proxy/metadata"
-	"github.com/pkg/errors"
-	"go.uber.org/zap"
 )
 
 type callee struct {

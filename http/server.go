@@ -2,12 +2,13 @@ package http
 
 import (
 	"context"
-	"go.uber.org/zap"
 	"net"
 	"net/http"
+	"net/url"
+
+	"go.uber.org/zap"
 
 	"github.com/mercari/grpc-http-proxy/metadata"
-	"net/url"
 )
 
 // Server is an grpc-http-proxy server
