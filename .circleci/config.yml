@@ -10,7 +10,7 @@ golang: &golang
     - image: golang:1.11-stretch
 
 jobs:
-  build:
+  test:
     <<: *golang
     steps:
     - checkout
@@ -45,7 +45,7 @@ workflows:
   version: 2
   build-workflow:
     jobs:
-    - build:
+    - test:
         context: org-global
     - lint:
         context: org-global
