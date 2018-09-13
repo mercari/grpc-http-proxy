@@ -6,7 +6,7 @@ build: dep
 
 .PHONY: dep
 dep:
-	dep version | go get -u github.com/golang/dep
+	dep version || curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
 	@dep ensure -v
 
 .PHONY: test
