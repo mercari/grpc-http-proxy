@@ -7,7 +7,7 @@ sources:
 - https://github.com/mercari/grpc-http-proxy
 maintainers:
 - name: tomoyat1
-  email: <YOUR_GITHUB_EMAIL>
+  email: t@tomoyat1.com
 - name: vbanthia
   email: vishal@mercari.com
 - name: tcnksm
