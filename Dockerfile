@@ -1,14 +1,21 @@
-FROM golang:1.11-alpine AS build-env
+FROM golang:1.11 AS build-env
+
+ARG VERSION
 
 WORKDIR /go/src/github.com/mercari/grpc-http-proxy
 
 ADD . /go/src/github.com/mercari/grpc-http-proxy
-RUN apk --update add curl git make
-RUN make build
+
+RUN go get github.com/golang/dep/cmd/dep
+
+RUN CGO_ENABLED=0 GOOS=linux go install -v \
+    -ldflags="-w -s" \
+    -ldflags "-X main.version=${VERSION}" \
+    github.com/mercari/grpc-http-proxy/cmd/proxy
 
 FROM alpine:latest
 
-COPY --from=build-env /go/src/github.com/mercari/grpc-http-proxy/build/proxy /proxy
+COPY --from=build-env /go/bin/proxy /proxy
 RUN chmod a+x /proxy
 
 EXPOSE 3000
