@@ -169,14 +169,16 @@ func (k *Service) eventHandler(evt Event) {
 		if !ok {
 			return
 		}
-		gRPCServiceName := evt.Svc.Annotations[serviceNameAnnotationKey]
+		gRPCServiceNames := strings.Split(evt.Svc.Annotations[serviceNameAnnotationKey], ",")
 
-		if metav1.HasAnnotation(evt.Svc.ObjectMeta, serviceVersionAnnotationKey) {
-			version := evt.Svc.Annotations[serviceVersionAnnotationKey]
-			k.Records.SetRecord(gRPCServiceName, version, u)
-			return
+		for _, svcName := range gRPCServiceNames {
+			if metav1.HasAnnotation(evt.Svc.ObjectMeta, serviceVersionAnnotationKey) {
+				version := evt.Svc.Annotations[serviceVersionAnnotationKey]
+				k.Records.SetRecord(svcName, version, u)
+				continue
+			}
+			k.Records.SetRecord(svcName, "", u)
 		}
-		k.Records.SetRecord(gRPCServiceName, "", u)
 	case deleteEvent:
 		if !metav1.HasAnnotation(evt.Svc.ObjectMeta, serviceNameAnnotationKey) {
 			k.logger.Debug("skipping service because of no annotation",
@@ -189,10 +191,12 @@ func (k *Service) eventHandler(evt Event) {
 		if !ok {
 			return
 		}
-		gRPCServiceName := evt.Svc.Annotations[serviceNameAnnotationKey]
+		gRPCServiceNames := strings.Split(evt.Svc.Annotations[serviceNameAnnotationKey], ",")
 
-		version := evt.Svc.Annotations[serviceVersionAnnotationKey]
-		k.Records.RemoveRecord(gRPCServiceName, version, u)
+		for _, svcName := range gRPCServiceNames {
+			version := evt.Svc.Annotations[serviceVersionAnnotationKey]
+			k.Records.RemoveRecord(svcName, version, u)
+		}
 	case updateEvent:
 		// Service versions before and after update do not have annotations
 		// Skip service and return
@@ -208,23 +212,29 @@ func (k *Service) eventHandler(evt Event) {
 		// Service versions before and after update both have gRPC service annotations
 		if metav1.HasAnnotation(evt.Svc.ObjectMeta, serviceNameAnnotationKey) &&
 			metav1.HasAnnotation(evt.OldSvc.ObjectMeta, serviceNameAnnotationKey) {
-			gRPCServiceName := evt.Svc.Annotations[serviceNameAnnotationKey]
-			oldGRPCServiceName := evt.OldSvc.Annotations[serviceNameAnnotationKey]
+			serviceNameAnnotationValue := evt.Svc.Annotations[serviceNameAnnotationKey]
+			oldServiceNameAnnotationValue := evt.OldSvc.Annotations[serviceNameAnnotationKey]
 			version := evt.Svc.Annotations[serviceVersionAnnotationKey]
 			oldVersion := evt.OldSvc.Annotations[serviceVersionAnnotationKey]
+			gRPCServiceNames := strings.Split(serviceNameAnnotationValue, ",")
+			oldGRPCServiceNames := strings.Split(oldServiceNameAnnotationValue, ",")
 
-			if oldGRPCServiceName != gRPCServiceName {
+			if oldServiceNameAnnotationValue != serviceNameAnnotationValue {
 				// gRPC service name was changed
 				oldURL, ok := k.constructURL(evt.OldSvc)
 				if !ok {
 					return
 				}
-				k.Records.RemoveRecord(oldGRPCServiceName, oldVersion, oldURL)
+				for _, oldSvcName := range oldGRPCServiceNames {
+					k.Records.RemoveRecord(oldSvcName, oldVersion, oldURL)
+				}
 				u, ok := k.constructURL(evt.Svc)
 				if !ok {
 					return
 				}
-				k.Records.SetRecord(gRPCServiceName, version, u)
+				for _, svcName := range gRPCServiceNames {
+					k.Records.SetRecord(svcName, version, u)
+				}
 				return
 			}
 
@@ -234,22 +244,28 @@ func (k *Service) eventHandler(evt Event) {
 				if !ok {
 					return
 				}
-				k.Records.RemoveRecord(oldGRPCServiceName, oldVersion, oldURL)
+				for _, oldSvcName := range oldGRPCServiceNames {
+					k.Records.RemoveRecord(oldSvcName, oldVersion, oldURL)
+				}
 				u, ok := k.constructURL(evt.Svc)
 				if !ok {
 					return
 				}
-				k.Records.SetRecord(gRPCServiceName, version, u)
+				for _, svcName := range gRPCServiceNames {
+					k.Records.SetRecord(svcName, version, u)
+				}
 				return
 			}
 
-			if !k.Records.RecordExists(gRPCServiceName, version) {
-				// Record is missing, so add it
-				u, ok := k.constructURL(evt.Svc)
-				if !ok {
-					return
+			if k.areServicesMissing(gRPCServiceNames, version) {
+				// Some records is missing, so reprocess all services in annotation
+				for _, svcName := range gRPCServiceNames {
+					u, ok := k.constructURL(evt.Svc)
+					if !ok {
+						return
+					}
+					k.Records.SetRecord(svcName, version, u)
 				}
-				k.Records.SetRecord(gRPCServiceName, version, u)
 				return
 			}
 
@@ -259,12 +275,16 @@ func (k *Service) eventHandler(evt Event) {
 				if !ok {
 					return
 				}
-				k.Records.RemoveRecord(oldGRPCServiceName, oldVersion, oldURL)
+				for _, oldSvcName := range oldGRPCServiceNames {
+					k.Records.RemoveRecord(oldSvcName, oldVersion, oldURL)
+				}
 				u, ok := k.constructURL(evt.Svc)
 				if !ok {
 					return
 				}
-				k.Records.SetRecord(gRPCServiceName, version, u)
+				for _, svcName := range gRPCServiceNames {
+					k.Records.SetRecord(svcName, version, u)
+				}
 				return
 			}
 
@@ -278,20 +298,24 @@ func (k *Service) eventHandler(evt Event) {
 			if !ok {
 				return
 			}
-			oldGRPCServiceName := evt.OldSvc.Annotations[serviceNameAnnotationKey]
+			oldGRPCServiceNames := strings.Split(evt.OldSvc.Annotations[serviceNameAnnotationKey], ",")
 			oldVersion := evt.OldSvc.Annotations[serviceVersionAnnotationKey]
-			k.Records.RemoveRecord(oldGRPCServiceName, oldVersion, oldURL)
+			for _, oldSvcName := range oldGRPCServiceNames {
+				k.Records.RemoveRecord(oldSvcName, oldVersion, oldURL)
+			}
 			return
 		}
 
 		// gRPC service annotation was added to the Service
-		gRPCServiceName := evt.Svc.Annotations[serviceNameAnnotationKey]
+		gRPCServiceNames := strings.Split(evt.Svc.Annotations[serviceNameAnnotationKey], ",")
 		version := evt.Svc.Annotations[serviceVersionAnnotationKey]
 		u, ok := k.constructURL(evt.Svc)
 		if !ok {
 			return
 		}
-		k.Records.SetRecord(gRPCServiceName, version, u)
+		for _, svcName := range gRPCServiceNames {
+			k.Records.SetRecord(svcName, version, u)
+		}
 	}
 }
 
@@ -341,6 +365,16 @@ func selectPort(ports []core.ServicePort) (int32, bool) {
 		}
 	}
 	return 0, false
+}
+
+// areServicesMissing is a helper method that check if any services are missing from the records
+func (k *Service) areServicesMissing(serviceNames []string, version string) bool {
+	for _, svcName := range serviceNames {
+		if !k.Records.RecordExists(svcName, version) {
+			return true
+		}
+	}
+	return false
 }
 
 // Event is an change event to a Kubernetes Service

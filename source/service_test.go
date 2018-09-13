@@ -299,6 +299,55 @@ func TestServiceAdded(t *testing.T) {
 		time.Sleep(2 * time.Second)
 		checkRecords(t, k, cases)
 	})
+
+	t.Run("create service with multiple gRPC services", func(t *testing.T) {
+		cases := []testCase{
+			{
+				service: "Echo",
+				version: "v1",
+				url:     parseURL(t, "foo-service.bar-ns.svc.cluster.local:5000"),
+				code:    -1,
+			},
+			{
+				service: "Ping",
+				version: "v1",
+				url:     parseURL(t, "foo-service.bar-ns.svc.cluster.local:5000"),
+				code:    -1,
+			},
+		}
+		f := newFixture(t)
+		k := f.newKubernetes()
+		stopCh := make(chan struct{})
+		defer func() { stopCh <- struct{}{} }()
+		k.Run(stopCh)
+		time.Sleep(2 * time.Second)
+
+		// create v1 of foo-service
+		fooV1 := newService(
+			"foo-service",
+			"bar-ns",
+			map[string]string{
+
+				serviceNameAnnotationKey:    "Echo,Ping",
+				serviceVersionAnnotationKey: "v1",
+			},
+			[]core.ServicePort{
+				{
+					Name:     "grpc",
+					Protocol: "TCP",
+					Port:     5000,
+				},
+			},
+		)
+		_, err := f.client.Core().Services(fooV1.Namespace).Create(fooV1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		waitForService(f.client, fooV1.Namespace, fooV1.Name)
+
+		time.Sleep(2 * time.Second)
+		checkRecords(t, k, cases)
+	})
 }
 
 func TestServiceDeleted(t *testing.T) {
@@ -518,6 +567,65 @@ func TestServiceDeleted(t *testing.T) {
 		time.Sleep(2 * time.Second)
 		checkRecords(t, k, cases)
 	})
+
+	t.Run("delete service with multiple gRPC services", func(t *testing.T) {
+		cases := []testCase{
+			{
+				service: "Echo",
+				version: "v1",
+				url:     nil,
+				code:    int(errors.ServiceUnresolvable),
+			},
+			{
+				service: "Ping",
+				version: "v1",
+				url:     nil,
+				code:    int(errors.ServiceUnresolvable),
+			},
+		}
+		f := newFixture(t)
+		k := f.newKubernetes()
+		stopCh := make(chan struct{})
+		defer func() { stopCh <- struct{}{} }()
+		k.Run(stopCh)
+		time.Sleep(2 * time.Second)
+
+		// create v1 of foo-service
+		fooV1 := newService(
+			"foo-service",
+			"bar-ns",
+			map[string]string{
+
+				serviceNameAnnotationKey:    "Echo,Ping",
+				serviceVersionAnnotationKey: "v1",
+			},
+			[]core.ServicePort{
+				{
+					Name:     "grpc",
+					Protocol: "TCP",
+					Port:     5000,
+				},
+			},
+		)
+		_, err := f.client.Core().Services(fooV1.Namespace).Create(fooV1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		waitForService(f.client, fooV1.Namespace, fooV1.Name)
+
+		// delete v1 of foo-service
+		err = f.client.Core().Services(fooV1.Namespace).Delete(fooV1.Name, &metav1.DeleteOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = waitForNoService(f.client, fooV1.Namespace, fooV1.Name)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		time.Sleep(2 * time.Second)
+		checkRecords(t, k, cases)
+	})
 }
 
 func TestServiceUpdated(t *testing.T) {
@@ -567,6 +675,61 @@ func TestServiceUpdated(t *testing.T) {
 
 		// change foo-service name to Ping
 		fooSvc.Annotations[serviceNameAnnotationKey] = "Ping"
+		_, err = f.client.Core().Services(fooSvc.Namespace).Update(fooSvc)
+		if err != nil {
+			t.Fatal(err)
+		}
+		waitForService(f.client, fooSvc.Namespace, fooSvc.Name)
+		time.Sleep(2 * time.Second)
+		checkRecords(t, k, cases)
+	})
+
+	t.Run("add another service", func(t *testing.T) {
+		cases := []testCase{
+			{
+				service: "Echo",
+				version: "v1",
+				url:     parseURL(t, "foo-service.bar-ns.svc.cluster.local:5000"),
+				code:    -1,
+			},
+			{
+				service: "Ping",
+				version: "v1",
+				url:     parseURL(t, "foo-service.bar-ns.svc.cluster.local:5000"),
+				code:    -1,
+			},
+		}
+		f := newFixture(t)
+		k := f.newKubernetes()
+		stopCh := make(chan struct{})
+		defer func() { stopCh <- struct{}{} }()
+		k.Run(stopCh)
+		time.Sleep(2 * time.Second)
+
+		// create v1 of foo-service
+		fooSvc := newService(
+			"foo-service",
+			"bar-ns",
+			map[string]string{
+				serviceNameAnnotationKey:    "Echo",
+				serviceVersionAnnotationKey: "v1",
+			},
+			[]core.ServicePort{
+				{
+					Name:     "grpc",
+					Protocol: "TCP",
+					Port:     5000,
+				},
+			},
+		)
+		_, err := f.client.Core().Services(fooSvc.Namespace).Create(fooSvc)
+		if err != nil {
+			t.Fatal(err)
+		}
+		waitForService(f.client, fooSvc.Namespace, fooSvc.Name)
+
+		// change foo-service name to Ping
+		fooSvc.Annotations[serviceNameAnnotationKey] = "Echo,Ping"
 		_, err = f.client.Core().Services(fooSvc.Namespace).Update(fooSvc)
 		if err != nil {
 			t.Fatal(err)
@@ -908,6 +1071,62 @@ func TestServiceUpdated(t *testing.T) {
 		time.Sleep(2 * time.Second)
 		checkRecords(t, k, cases)
 	})
+
+	t.Run("gRPC service is missing", func(t *testing.T) {
+		cases := []testCase{
+			{
+				service: "Echo",
+				version: "v1",
+				url:     parseURL(t, "foo-service.bar-ns.svc.cluster.local:5000"),
+				code:    -1,
+			},
+			{
+				service: "Ping",
+				version: "v1",
+				url:     parseURL(t, "foo-service.bar-ns.svc.cluster.local:5000"),
+				code:    -1,
+			},
+		}
+		f := newFixture(t)
+		k := f.newKubernetes()
+		stopCh := make(chan struct{})
+		defer func() { stopCh <- struct{}{} }()
+		k.Run(stopCh)
+		time.Sleep(2 * time.Second)
+
+		// create v1 of foo-service
+		fooSvc := newService(
+			"foo-service",
+			"bar-ns",
+			map[string]string{
+				serviceNameAnnotationKey:    "Echo,Ping",
+				serviceVersionAnnotationKey: "v1",
+			},
+			[]core.ServicePort{
+				{
+					Name:     "grpc",
+					Protocol: "TCP",
+					Port:     5000,
+				},
+			},
+		)
+		_, err := f.client.Core().Services(fooSvc.Namespace).Create(fooSvc)
+		if err != nil {
+			t.Fatal(err)
+		}
+		waitForService(f.client, fooSvc.Namespace, fooSvc.Name)
+
+		k.Records.RemoveRecord("Ping", "v1", parseURL(t, "foo-service.bar-ns.svc.cluster.local:5000"))
+
+		_, err = f.client.Core().Services(fooSvc.Namespace).Update(fooSvc)
+		if err != nil {
+			t.Fatal(err)
+		}
+		waitForService(f.client, fooSvc.Namespace, fooSvc.Name)
+
+		time.Sleep(2 * time.Second)
+		checkRecords(t, k, cases)
+	})
 }
 
 func TestSelectPort(t *testing.T) {
@@ -973,6 +1192,46 @@ func TestSelectPort(t *testing.T) {
 				t.Fatalf("got %d, want %d", got, want)
 			}
 			if got, want := ok, tc.ok; got != want {
+				t.Fatalf("got %t, want %t", got, want)
+			}
+		})
+	}
+}
+
+func Test_AreServicesMissing(t *testing.T) {
+	cases := []struct {
+		name     string
+		m        map[string]versions
+		services []string
+		version  string
+		missing  bool
+	}{
+		{
+			name: "not missing",
+			m: map[string]versions{
+				"Echo": {
+					"v1": []*url.URL{parseURL(t, "localhost:5000")},
+				},
+			},
+			services: []string{"Echo"},
+			version:  "v1",
+			missing:  false,
+		},
+		{
+			name:     "missing",
+			m:        map[string]versions{},
+			services: []string{"Echo"},
+			version:  "v1",
+			missing:  true,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			source := &Service{
+				Records: NewRecords(),
+			}
+			source.Records.m = tc.m
+			if got, want := source.areServicesMissing(tc.services, tc.version), tc.missing; got != want {
 				t.Fatalf("got %t, want %t", got, want)
 			}
 		})
