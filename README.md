@@ -73,6 +73,17 @@ Put the `grpc-http-proxy.alpha.mercari.com/grpc-service` annotation on the Servi
 +     grpc-http-proxy.alpha.mercari.com/grpc-service: my.package.MyService
 ```
 
+If your gRPC server exports multiple services, specify them in a list delimited by a comma (`,`).
+
+```diff
+  kind: Service
+  apiVersion: v1
+  metadata:
+    name: my-service
+    annotation:
++     grpc-http-proxy.alpha.mercari.com/grpc-service: my.package.MyService,my.anotherpackage.OtherService
+```
+
 #### 2. Name your port with a name which begins with `grpc`.
 grpc-http-proxy will send requests to the port whose name begins with `grpc`. If there are multiple matching ports, the first one will be selected.
 This step may be skipped if the port you intend to use is the only port exposed on the Kubernetes Service.
