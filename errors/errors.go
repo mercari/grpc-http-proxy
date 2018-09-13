@@ -26,21 +26,21 @@ type Code int
 
 const (
 	// UpstreamConnFailure represents failure to connect to the upstream gRPC service
-	UpstreamConnFailure Code = 2
+	UpstreamConnFailure Code = 1
 	// ServiceUnresolvable represents failure to resolve a gRPC service to its upstream FQDN
-	ServiceUnresolvable Code = 3
+	ServiceUnresolvable Code = 2
 	// ServiceNotFound represents a missing gRPC service in an upstream, even though the service resolved to that upstream
-	ServiceNotFound Code = 4
+	ServiceNotFound Code = 3
 	// MethodNotFound represents a missing gRPC method in an upstream
-	MethodNotFound Code = 5
+	MethodNotFound Code = 4
 	// MessageTypeMismatch represents user provided JSON not matching the message's type
-	MessageTypeMismatch Code = 6
+	MessageTypeMismatch Code = 5
 	// Unknown represents an unknown internal error
-	Unknown Code = 8
+	Unknown Code = 6
 	// VersionNotSpecified represents the user not specifying the upstream version when it is required.
-	VersionNotSpecified Code = 9
+	VersionNotSpecified Code = 7
 	// VersionUndecidable represents there being multiple upstreams that match the specified (service, version) pair
-	VersionUndecidable Code = 10
+	VersionUndecidable Code = 8
 )
 
 // Error satisfies the error interface
