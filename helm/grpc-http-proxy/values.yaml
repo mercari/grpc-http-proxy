@@ -13,14 +13,6 @@ service:
   type: ClusterIP
   port: 3000
 
-ingress:
-  enabled: false
-  annotations: {}
-  path: /
-  hosts:
-    - grpc-http-proxy.example.com
-  tls: []
-
 resources: {}
   # limits:
   #  cpu: 100m
