@@ -1,0 +1,36 @@
+replicaCount: 1
+
+image:
+  repository: mercari/grpc-http-proxy
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+# Access token for grpc-http-proxy
+accessToken: changeme
+logLevel: INFO
+
+service:
+  type: ClusterIP
+  port: 3000
+
+ingress:
+  enabled: false
+  annotations: {}
+  path: /
+  hosts:
+    - grpc-http-proxy.example.com
+  tls: []
+
+resources: {}
+  # limits:
+  #  cpu: 100m
+  #  memory: 128Mi
+  # requests:
+  #  cpu: 100m
+  #  memory: 128Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
