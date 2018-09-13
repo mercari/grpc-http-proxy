@@ -12,8 +12,8 @@ import (
 
 func TestNewRecords(t *testing.T) {
 	want := &Records{
-		m:     make(map[string]versions),
-		mutex: sync.RWMutex{},
+		m:         make(map[string]versions),
+		recordsMu: sync.RWMutex{},
 	}
 	got := NewRecords()
 	if !reflect.DeepEqual(got, want) {
@@ -114,7 +114,7 @@ func TestRecords_GetRecord(t *testing.T) {
 				"v1": []*url.URL{parseURL(t, "e.v1"), parseURL(t, "e.v2")},
 			},
 		},
-		mutex: sync.RWMutex{},
+		recordsMu: sync.RWMutex{},
 	}
 	for _, tc := range cases {
 		t.Run(string(tc.name), func(t *testing.T) {
@@ -182,8 +182,8 @@ func TestRecords_SetRecord(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(string(tc.name), func(t *testing.T) {
 			r := Records{
-				m:     tc.m,
-				mutex: sync.RWMutex{},
+				m:         tc.m,
+				recordsMu: sync.RWMutex{},
 			}
 			r.SetRecord(tc.service, tc.version, tc.url)
 			if got, want := r.m, tc.expected; !reflect.DeepEqual(got, want) {
@@ -221,7 +221,7 @@ func TestRecords_IsServiceUnique(t *testing.T) {
 				"v1": []*url.URL{parseURL(t, "b.v1")},
 			},
 		},
-		mutex: sync.RWMutex{},
+		recordsMu: sync.RWMutex{},
 	}
 	for _, tc := range cases {
 		t.Run(string(tc.name), func(t *testing.T) {
@@ -318,8 +318,8 @@ func TestRecords_RemoveRecord(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(string(tc.name), func(t *testing.T) {
 			r := Records{
-				m:     tc.m,
-				mutex: sync.RWMutex{},
+				m:         tc.m,
+				recordsMu: sync.RWMutex{},
 			}
 			r.RemoveRecord(tc.service, tc.version, tc.url)
 			if got, want := r.m, tc.expected; !reflect.DeepEqual(got, want) {
@@ -362,7 +362,7 @@ func TestRecords_RecordExists(t *testing.T) {
 				"v1": []*url.URL{parseURL(t, "a.v1")},
 			},
 		},
-		mutex: sync.RWMutex{},
+		recordsMu: sync.RWMutex{},
 	}
 	for _, tc := range cases {
 		t.Run(string(tc.name), func(t *testing.T) {

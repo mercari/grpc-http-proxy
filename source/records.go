@@ -13,30 +13,30 @@ type versions map[string][]*url.URL
 // Records contains mappings from a gRPC service to upstream hosts
 // It holds one upstream for each service version
 type Records struct {
-	m     map[string]versions
-	mutex sync.RWMutex
+	m         map[string]versions
+	recordsMu sync.RWMutex
 }
 
 // NewRecords creates an empty mapping
 func NewRecords() *Records {
 	m := make(map[string]versions)
 	return &Records{
-		m:     m,
-		mutex: sync.RWMutex{},
+		m:         m,
+		recordsMu: sync.RWMutex{},
 	}
 }
 
 // ClearRecords clears all mappings
 func (r *Records) ClearRecords() {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
+	r.recordsMu.Lock()
+	defer r.recordsMu.Unlock()
 	r.m = make(map[string]versions)
 }
 
 // GetRecord gets a records of the specified (service, version) pair
 func (r *Records) GetRecord(svc, version string) (*url.URL, error) {
-	r.mutex.RLock()
-	defer r.mutex.RUnlock()
+	r.recordsMu.RLock()
+	defer r.recordsMu.RUnlock()
 	vs, ok := r.m[svc]
 	if !ok {
 		return nil, &errors.ProxyError{
@@ -84,8 +84,8 @@ func (r *Records) GetRecord(svc, version string) (*url.URL, error) {
 // When successful, true will be returned.
 // This fails if the URL for the blank version ("") is to be overwritten, and invalidates that entry.
 func (r *Records) SetRecord(svc, version string, u *url.URL) bool {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
+	r.recordsMu.Lock()
+	defer r.recordsMu.Unlock()
 	if _, ok := r.m[svc]; !ok {
 		r.m[svc] = make(map[string][]*url.URL)
 	}
@@ -98,8 +98,8 @@ func (r *Records) SetRecord(svc, version string, u *url.URL) bool {
 
 // RemoveRecord removes a record of the specified (service, version) pair
 func (r *Records) RemoveRecord(svc, version string, u *url.URL) {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
+	r.recordsMu.Lock()
+	defer r.recordsMu.Unlock()
 
 	vs, ok := r.m[svc]
 	if !ok {
@@ -126,16 +126,16 @@ func (r *Records) RemoveRecord(svc, version string, u *url.URL) {
 
 // IsServiceUnique checks if there is only one version of a service
 func (r *Records) IsServiceUnique(svc string) bool {
-	r.mutex.RLock()
-	defer r.mutex.RUnlock()
+	r.recordsMu.RLock()
+	defer r.recordsMu.RUnlock()
 	b := len(r.m[svc]) == 1
 	return b
 }
 
 // RecordExists checks if a record exists
 func (r *Records) RecordExists(svc, version string) bool {
-	r.mutex.RLock()
-	defer r.mutex.RUnlock()
+	r.recordsMu.RLock()
+	defer r.recordsMu.RUnlock()
 	vs, ok := r.m[svc]
 	if !ok {
 		return false

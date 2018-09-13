@@ -30,6 +30,9 @@ func NewProxy() *Proxy {
 // Connect opens a connection to target.
 func (p *Proxy) Connect(ctx context.Context, target *url.URL) error {
 	cc, err := grpc.DialContext(ctx, target.String(), grpc.WithInsecure())
+	if err != nil {
+		return err
+	}
 	p.cc = cc
 	rc := grpcreflect.NewClient(ctx, rpb.NewServerReflectionClient(p.cc))
 	p.reflector = reflection.NewReflector(rc)

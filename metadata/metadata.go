@@ -9,7 +9,7 @@ const metadataHeaderPrefix = "Grpc-Metadata-"
 type Metadata map[string][]string
 
 func MetadataFromHeaders(raw map[string][]string) Metadata {
-	m := make(map[string][]string)
+	m := make(map[string][]string, len(raw))
 	for rawK, v := range raw {
 		if k := extractGrpcMetadataKey(rawK); k != "" {
 			k = strings.ToLower(k)
@@ -27,7 +27,7 @@ func extractGrpcMetadataKey(rawKey string) string {
 }
 
 func (m Metadata) ToHeaders() map[string][]string {
-	h := make(map[string][]string)
+	h := make(map[string][]string, len(m))
 	for k, v := range m {
 		h[metadataHeaderPrefix+k] = v
 	}

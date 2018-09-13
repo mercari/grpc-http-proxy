@@ -113,7 +113,7 @@ The version can be any string you like.
 
 ```diff
     annotations:
-+     translator/backend-version: pr-42
++    grpc-http-proxy.alpha.mercari.com/grpc-service-version: pr-42
 ```
 
 ## Examples
