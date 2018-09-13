@@ -185,3 +185,16 @@ A non-exhaustive list of additional features that could be desired:
 - Ability to find services though a static configuration file.
 
 Contributions are welcomed :)
+
+## Committers
+Tomoya TABUCHI ([@tomoyat1](https://github.com/tomoyat1))
+
+## Contribution
+Please read the CLA below carefully before submitting your contribution.
+
+https://www.mercari.com/cla/
+
+## LICENSE
+Copyright 2018 Mercari, Inc.
+
+Licensed under the MIT License.
