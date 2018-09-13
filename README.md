@@ -3,6 +3,9 @@
 [![CircleCI](https://circleci.com/gh/mercari/grpc-http-proxy.svg?style=shield&circle-token=2a2be18757cc9a28dc396a3c30277c98ed060d33)](https://circleci.com/gh/mercari/grpc-http-proxy)
 [![codecov](https://codecov.io/gh/mercari/grpc-http-proxy/branch/master/graph/badge.svg?token=aTIypBc4JX)](https://codecov.io/gh/mercari/grpc-http-proxy)
 
+
+**:warning: This is not production ready**
+
 grpc-http-proxy is a reverse proxy which converts JSON HTTP requests to gRPC calls without much configuration.
 It is designed to run in a Kubernetes cluster, and uses the Kubernetes API to find in-cluster servers that provide the desired gRPC service using custom Kubernetes annotations.
 
@@ -20,7 +23,7 @@ grpc-http-proxy was created to be a single reverse proxy that works with all gRP
 ## How it works
 ![image](https://user-images.githubusercontent.com/1614811/45482621-8e43a300-b789-11e8-96c9-dcba18f30aed.png)
 
-An request to the grpc-http-proxy's endpoint `/v1/<service>/<method>` will make the proxy call the `<method>` method of the `<service>` gRPC service.
+A request to the grpc-http-proxy's endpoint `/v1/<service>/<method>` will make the proxy call the `<method>` method of the `<service>` gRPC service.
 
 Given the service name and method name are known, the gRPC call is made in the following steps:
 1. The [gRPC server reflection protocol](https://github.com/grpc/grpc/blob/master/doc/server-reflection.md) is used to obtain information from the gRPC service on the supported methods and the format of messages. 
