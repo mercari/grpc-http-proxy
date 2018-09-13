@@ -7,6 +7,7 @@ grpc-http-proxy is a reverse proxy which converts JSON HTTP requests to gRPC cal
 It is designed to run in a Kubernetes cluster, and uses the Kubernetes API to find in-cluster servers that provide the desired gRPC service using custom Kubernetes annotations.
 
 (diagram of architecture goes here)
+![image](https://user-images.githubusercontent.com/1614811/45482670-a6b3bd80-b789-11e8-9243-70dac1a7fd41.png)
 
 ## Background
 Although existing solutions, such as [grpc-gateway](https://github.com/grpc-ecosystem/grpc-gateway),  generate reverse proxies that convert JSON HTTP requests to gRPC calls exist, they require the following to work:
@@ -18,7 +19,7 @@ As gRPC service definitions get larger, and more services are created, this can 
 grpc-http-proxy was created to be a single reverse proxy that works with all gRPC services, and without all the manual mapping. This enables gRPC services to be accessed through HTTP requests with less hassle than before.
 
 ## How it works
-(flow image goes here)
+![image](https://user-images.githubusercontent.com/1614811/45482621-8e43a300-b789-11e8-96c9-dcba18f30aed.png)
 
 An request to the grpc-http-proxy's endpoint `/v1/<service>/<method>` will make the proxy call the `<method>` method of the `<service>` gRPC service.
 
