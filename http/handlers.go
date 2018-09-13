@@ -78,6 +78,7 @@ func (s *Server) RPCCallHandler(newClient func() Client) http.HandlerFunc {
 		md := make(metadata.Metadata)
 
 		inputMessage, err := ioutil.ReadAll(r.Body)
+		defer r.Body.Close()
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
