@@ -15,7 +15,7 @@ test:
 
 .PHONY: coverage
 coverage:
-	@go test -race -coverpkg=./... -coverprofile=coverage.txt ./...
+	@go test -coverpkg=./... -coverprofile=coverage.txt ./...
 
 .PHONY: reviewdog
 reviewdog: devel-deps
