@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: mercari/grpc-http-proxy
-  tag: "0.1.0"
+  tag: "v0.1.0"
   pullPolicy: IfNotPresent
 
 # Access token for grpc-http-proxy
