@@ -45,7 +45,5 @@ workflows:
   version: 2
   build-workflow:
     jobs:
-    - test:
-        context: org-global
-    - lint:
-        context: org-global
+    - test
+    - lint
