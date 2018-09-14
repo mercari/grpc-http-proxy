@@ -31,6 +31,24 @@ spec:
               secretKeyRef:
                 name: {{ template "grpc-http-proxy.fullname" . }}-access-token
                 key: accessToken
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthz
+            port: 3000
+            scheme: HTTP
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthz
+            port: 3000
+            scheme: HTTP
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
 {{- if .Values.resources }}
         resources:
 {{ toYaml .Values.resources | indent 10 }}
