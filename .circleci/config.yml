@@ -22,11 +22,12 @@ jobs:
         name: Run test
         command: |
           make test
-    - run:
-        name: Run coverage
-        command: |
-          make coverage
-          bash <(curl -s https://codecov.io/bash)
+# TODO: enable coverage step after CircleCI resources are increased.
+#    - run:
+#        name: Run coverage
+#        command: |
+#          make coverage
+#          bash <(curl -s https://codecov.io/bash)
   lint:
     <<: *golang
     steps:
@@ -44,4 +45,5 @@ workflows:
   version: 2
   build-workflow:
     jobs:
+    - test
     - lint
