@@ -2,6 +2,7 @@ version: 2
 
 defaults: &defaults
   working_directory: /go/src/github.com/mercari/grpc-http-proxy
+  resource_class: xlarge
 
 golang: &golang
   <<: *defaults
