@@ -64,6 +64,7 @@ func (s *stubImpl) InvokeRPC(
 		return nil, &errors.GRPCError{
 			StatusCode: int(stat.Code()),
 			Message:    stat.Message(),
+			Details:    stat.Proto().Details,
 		}
 	}
 	outputMsg := invocation.MethodDescriptor.GetOutputType().NewMessage()
