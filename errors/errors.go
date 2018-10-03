@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 
+	any "github.com/golang/protobuf/ptypes/any"
 	"google.golang.org/grpc/codes"
 )
 
@@ -101,8 +102,9 @@ func (e *ProxyError) WriteJSON(w io.Writer) error {
 
 // GRPCError is an error returned by gRPC upstream
 type GRPCError struct {
-	StatusCode int    `json:"code"`
-	Message    string `json:"message"`
+	StatusCode int        `json:"code"`
+	Message    string     `json:"message"`
+	Details    []*any.Any `json:"details,omitempty"`
 }
 
 // HTTPStatusCode converts gRPC status codes to HTTP status codes
