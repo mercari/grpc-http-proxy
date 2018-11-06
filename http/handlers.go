@@ -73,8 +73,11 @@ func (s *Server) RPCCallHandler(newClient func() Client) http.HandlerFunc {
 			returnError(w, errors.Cause(err).(perrors.Error))
 			return
 		}
+		// TODO: Re-Use connections instead of creating a new connection for each request.
 		client := newClient()
 		client.Connect(ctx, u)
+		defer client.CloseConn()
+
 		md := make(metadata.Metadata)
 
 		inputMessage, err := ioutil.ReadAll(r.Body)
