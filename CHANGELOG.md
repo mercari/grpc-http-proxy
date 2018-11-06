@@ -2,6 +2,12 @@
 
 ## HEAD
 
+## v0.1.2 (2018-11-06)
+
+### Fix
+
+- [Fixes](https://github.com/mercari/grpc-http-proxy/pull/6) Zombie connections issue by closing connection once request is finished.
+
 ## v0.1.1 (2018-10-03)
 
 ### Enhancement
