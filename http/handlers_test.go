@@ -34,6 +34,10 @@ func (d *fakeDiscoverer) Resolve(service, version string) (*url.URL, error) {
 	return u, nil
 }
 
+func (d *fakeDiscoverer) All() []byte {
+	return []byte{}
+}
+
 type fakeClient struct {
 	t       *testing.T
 	service string

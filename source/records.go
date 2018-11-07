@@ -1,6 +1,7 @@
 package source
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"sync"
@@ -13,7 +14,7 @@ type versions map[string][]*url.URL
 // Records contains mappings from a gRPC service to upstream hosts
 // It holds one upstream for each service version
 type Records struct {
-	m         map[string]versions
+	M         map[string]versions `json:"grpc_service"`
 	recordsMu sync.RWMutex
 }
 
@@ -21,23 +22,38 @@ type Records struct {
 func NewRecords() *Records {
 	m := make(map[string]versions)
 	return &Records{
-		m:         m,
+		M:         m,
 		recordsMu: sync.RWMutex{},
 	}
+}
+
+func (r *Records) ToJSON() []byte {
+	r.recordsMu.Lock()
+	defer r.recordsMu.Unlock()
+
+	fmt.Printf("Records are %v", r)
+
+	j, err := json.Marshal(r)
+	if err != nil {
+		fmt.Println(err)
+		return []byte(err.Error())
+	}
+
+	return j
 }
 
 // ClearRecords clears all mappings
 func (r *Records) ClearRecords() {
 	r.recordsMu.Lock()
 	defer r.recordsMu.Unlock()
-	r.m = make(map[string]versions)
+	r.M = make(map[string]versions)
 }
 
 // GetRecord gets a records of the specified (service, version) pair
 func (r *Records) GetRecord(svc, version string) (*url.URL, error) {
 	r.recordsMu.RLock()
 	defer r.recordsMu.RUnlock()
-	vs, ok := r.m[svc]
+	vs, ok := r.M[svc]
 	if !ok {
 		return nil, &errors.ProxyError{
 			Code:    errors.ServiceUnresolvable,
@@ -86,13 +102,13 @@ func (r *Records) GetRecord(svc, version string) (*url.URL, error) {
 func (r *Records) SetRecord(svc, version string, u *url.URL) bool {
 	r.recordsMu.Lock()
 	defer r.recordsMu.Unlock()
-	if _, ok := r.m[svc]; !ok {
-		r.m[svc] = make(map[string][]*url.URL)
+	if _, ok := r.M[svc]; !ok {
+		r.M[svc] = make(map[string][]*url.URL)
 	}
-	if r.m[svc][version] == nil {
-		r.m[svc][version] = make([]*url.URL, 0)
+	if r.M[svc][version] == nil {
+		r.M[svc][version] = make([]*url.URL, 0)
 	}
-	r.m[svc][version] = append(r.m[svc][version], u)
+	r.M[svc][version] = append(r.M[svc][version], u)
 	return true
 }
 
@@ -101,7 +117,7 @@ func (r *Records) RemoveRecord(svc, version string, u *url.URL) {
 	r.recordsMu.Lock()
 	defer r.recordsMu.Unlock()
 
-	vs, ok := r.m[svc]
+	vs, ok := r.M[svc]
 	if !ok {
 		return
 	}
@@ -120,7 +136,7 @@ func (r *Records) RemoveRecord(svc, version string, u *url.URL) {
 		delete(vs, version)
 	}
 	if len(vs) == 0 {
-		delete(r.m, svc)
+		delete(r.M, svc)
 	}
 }
 
@@ -128,7 +144,7 @@ func (r *Records) RemoveRecord(svc, version string, u *url.URL) {
 func (r *Records) IsServiceUnique(svc string) bool {
 	r.recordsMu.RLock()
 	defer r.recordsMu.RUnlock()
-	b := len(r.m[svc]) == 1
+	b := len(r.M[svc]) == 1
 	return b
 }
 
@@ -136,7 +152,7 @@ func (r *Records) IsServiceUnique(svc string) bool {
 func (r *Records) RecordExists(svc, version string) bool {
 	r.recordsMu.RLock()
 	defer r.recordsMu.RUnlock()
-	vs, ok := r.m[svc]
+	vs, ok := r.M[svc]
 	if !ok {
 		return false
 	}

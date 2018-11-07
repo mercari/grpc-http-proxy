@@ -12,7 +12,7 @@ import (
 
 func TestNewRecords(t *testing.T) {
 	want := &Records{
-		m:         make(map[string]versions),
+		M:         make(map[string]versions),
 		recordsMu: sync.RWMutex{},
 	}
 	got := NewRecords()
@@ -99,7 +99,7 @@ func TestRecords_GetRecord(t *testing.T) {
 	}
 
 	r := Records{
-		m: map[string]versions{
+		M: map[string]versions{
 			"a": {
 				"v1": []*url.URL{parseURL(t, "a.v1")},
 				"v2": []*url.URL{parseURL(t, "a.v2")},
@@ -182,11 +182,11 @@ func TestRecords_SetRecord(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(string(tc.name), func(t *testing.T) {
 			r := Records{
-				m:         tc.m,
+				M:         tc.m,
 				recordsMu: sync.RWMutex{},
 			}
 			r.SetRecord(tc.service, tc.version, tc.url)
-			if got, want := r.m, tc.expected; !reflect.DeepEqual(got, want) {
+			if got, want := r.M, tc.expected; !reflect.DeepEqual(got, want) {
 				t.Fatalf("got: %v, want %v", got, want)
 			}
 		})
@@ -318,11 +318,11 @@ func TestRecords_RemoveRecord(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(string(tc.name), func(t *testing.T) {
 			r := Records{
-				m:         tc.m,
+				M:         tc.m,
 				recordsMu: sync.RWMutex{},
 			}
 			r.RemoveRecord(tc.service, tc.version, tc.url)
-			if got, want := r.m, tc.expected; !reflect.DeepEqual(got, want) {
+			if got, want := r.M, tc.expected; !reflect.DeepEqual(got, want) {
 				t.Fatalf("got: %v, want %v", got, want)
 			}
 		})

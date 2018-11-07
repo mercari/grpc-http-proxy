@@ -62,4 +62,5 @@ type Client interface {
 // Discoverer performs service discover
 type Discoverer interface {
 	Resolve(svc, version string) (*url.URL, error)
+	All() []byte
 }

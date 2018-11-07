@@ -1230,7 +1230,7 @@ func Test_AreServicesMissing(t *testing.T) {
 			source := &Service{
 				Records: NewRecords(),
 			}
-			source.Records.m = tc.m
+			source.Records.M = tc.m
 			if got, want := source.areServicesMissing(tc.services, tc.version), tc.missing; got != want {
 				t.Fatalf("got %t, want %t", got, want)
 			}

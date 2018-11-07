@@ -46,6 +46,7 @@ func (s *Server) withLog(next http.HandlerFunc) http.HandlerFunc {
 			zap.String("path", r.URL.Path),
 			zap.Int("status", d.status),
 			zap.String("method", r.Method),
+			zap.String("client", r.UserAgent()),
 		)
 	}
 }

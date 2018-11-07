@@ -9,7 +9,8 @@ func (s *Server) registerHandlers() {
 		return proxy.NewProxy()
 	}
 
-	s.router.HandleFunc("/healthz", s.withLog(s.LivenessProbeHandler()))
+	s.router.HandleFunc("/healthz", s.LivenessProbeHandler())
+	s.router.HandleFunc("/debug", s.withLog(s.DebugHandler()))
 	s.router.HandleFunc("/v1/", apply(s.RPCCallHandler(newClient), []Adapter{
 		s.withAccessToken,
 		s.withLog,

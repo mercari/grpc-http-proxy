@@ -118,6 +118,10 @@ func (k *Service) Resolve(svc, version string) (*url.URL, error) {
 	return r, nil
 }
 
+func (k *Service) All() []byte {
+	return k.Records.ToJSON()
+}
+
 // Run starts the Service controller
 func (k *Service) Run(stopCh <-chan struct{}) {
 	go k.informer.Run(stopCh)
