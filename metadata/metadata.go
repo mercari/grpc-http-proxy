@@ -1,9 +1,12 @@
 package metadata
 
-import "strings"
+import (
+	"github.com/mercari/grpc-http-proxy/utils"
+	"strings"
+)
 
 // This is from an old grpc-gateway (https://github.com/grpc-ecosystem/grpc-gateway) specification
-const metadataHeaderPrefix = "Grpc-Metadata-"
+var metadataHeaderPrefix = utils.GetEnvVar( "GRPC_HEADER_METADATA_KEY_ID", "Grpc-Metadata-")
 
 // Metadata is gRPC metadata sent to and from upstream
 type Metadata map[string][]string

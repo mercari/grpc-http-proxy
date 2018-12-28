@@ -2,13 +2,12 @@ package http
 
 import (
 	"context"
+	"github.com/mercari/grpc-http-proxy/metadata"
+	"go.uber.org/zap"
+	grpc_metadata "google.golang.org/grpc/metadata"
 	"net"
 	"net/http"
 	"net/url"
-
-	"go.uber.org/zap"
-
-	"github.com/mercari/grpc-http-proxy/metadata"
 )
 
 // Server is an grpc-http-proxy server
@@ -56,7 +55,7 @@ type Client interface {
 		string,
 		[]byte,
 		*metadata.Metadata,
-	) ([]byte, error)
+	) ([]byte, grpc_metadata.MD, error)
 }
 
 // Discoverer performs service discover
