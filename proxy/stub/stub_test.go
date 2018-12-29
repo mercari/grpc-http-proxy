@@ -70,7 +70,7 @@ func TestStub_InvokeRPC(t *testing.T) {
 				MethodDescriptor: methodDesc,
 				Message:          inputMsg,
 			}
-			outputMsg, err := stub.InvokeRPC(ctx, invocation, (*metadata.Metadata)(&map[string][]string{}))
+			outputMsg, _, err := stub.InvokeRPC(ctx, invocation, (*metadata.Metadata)(&map[string][]string{}))
 			if err != nil {
 				switch v := err.(type) {
 				case *errors.ProxyError:

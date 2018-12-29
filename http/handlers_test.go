@@ -3,14 +3,14 @@ package http
 import (
 	"context"
 	"fmt"
+	"github.com/mercari/grpc-http-proxy/log"
+	"github.com/mercari/grpc-http-proxy/metadata"
+	grpc_metadata "google.golang.org/grpc/metadata"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
-
-	"github.com/mercari/grpc-http-proxy/log"
-	"github.com/mercari/grpc-http-proxy/metadata"
 )
 
 type fakeDiscoverer struct {
@@ -67,12 +67,12 @@ func (c *fakeClient) Call(ctx context.Context,
 	serviceName, methodName string,
 	message []byte,
 	md *metadata.Metadata,
-) ([]byte, error) {
+) ([]byte, grpc_metadata.MD, error) {
 	response := fmt.Sprintf("{\"serviceVersion\":\"%s\",\"service\":\"%s\",\"method\":\"%s\"}\n",
 		c.version,
 		c.service,
 		methodName)
-	return []byte(response), nil
+	return []byte(response), nil, nil
 }
 
 func TestServer_LivenessProbeHandler(t *testing.T) {
