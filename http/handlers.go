@@ -89,6 +89,102 @@ func (s *Server) ListServicesHandler() http.HandlerFunc {
 	}
 }
 
+// ListServicesHandler is
+func (s *Server) ListMethodsHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+
+		urls, ok := r.URL.Query()["url"]
+		if !ok || len(urls[0]) < 1 {
+			fmt.Println("url params should have url key")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		u, err := url.Parse(urls[0])
+		if err != nil {
+			fmt.Println("url not good")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		services, ok := r.URL.Query()["service"]
+		if !ok || len(services[0]) < 1 {
+			fmt.Println("url params should have service key")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		p := proxy.NewProxy()
+		p.Connect(context.Background(), u)
+		defer p.CloseConn()
+
+		methods, err := p.ListMethods(services[0])
+		if err != nil {
+			fmt.Printf("could not list methods %s", err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		json.NewEncoder(w).Encode(methods)
+	}
+}
+
+// ListFieldsHandler is
+func (s *Server) ListFieldsHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+
+		urls, ok := r.URL.Query()["url"]
+		if !ok || len(urls[0]) < 1 {
+			fmt.Println("url params should have url key")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		u, err := url.Parse(urls[0])
+		if err != nil {
+			fmt.Println("url not good")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		services, ok := r.URL.Query()["service"]
+		if !ok || len(services[0]) < 1 {
+			fmt.Println("url params should have service key")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		methods, ok := r.URL.Query()["method"]
+		if !ok || len(methods[0]) < 1 {
+			fmt.Println("url params should have method key")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		p := proxy.NewProxy()
+		p.Connect(context.Background(), u)
+		defer p.CloseConn()
+
+		fields, err := p.ListFields(services[0], methods[0])
+		if err != nil {
+			fmt.Printf("could not list fields %s", err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		json.NewEncoder(w).Encode(fields)
+	}
+}
+
 // CatchAllHandler handles requests for non-existing paths
 // This is done explicitly in order to have the logger middleware log the fact
 func (s *Server) CatchAllHandler() http.HandlerFunc {

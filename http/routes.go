@@ -16,9 +16,8 @@ func (s *Server) registerHandlers() {
 		s.withLog,
 	}...))
 	s.router.HandleFunc("/services", s.withLog(s.ListServicesHandler()))
-	// s.router.HandleFunc("/v1/list/", func(arg1 http.ResponseWriter, arg2 *http.Request) {
-	//
-	// })
+	s.router.HandleFunc("/methods", s.withLog(s.ListMethodsHandler()))
+	s.router.HandleFunc("/fields", s.withLog(s.ListFieldsHandler()))
 	s.router.HandleFunc("/", apply(s.CatchAllHandler(), []Adapter{
 		s.withAccessToken,
 		s.withLog,

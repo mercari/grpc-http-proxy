@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 
 	"github.com/jhump/protoreflect/dynamic/grpcdynamic"
@@ -45,6 +46,42 @@ func (p *Proxy) Connect(ctx context.Context, target *url.URL) error {
 // ListServices is
 func (p *Proxy) ListServices() ([]string, error) {
 	return p.rc.ListServices()
+}
+
+// ListMethods is
+func (p *Proxy) ListMethods(service string) ([]string, error) {
+	d, err := p.rc.ResolveService(service)
+	if err != nil {
+		return nil, err
+	}
+	md := d.GetMethods()
+	methods := make([]string, len(md))
+
+	for i, m := range md {
+		methods[i] = m.GetName()
+	}
+
+	return methods, nil
+}
+
+// ListFields is
+func (p *Proxy) ListFields(service, method string) ([]string, error) {
+	d, err := p.rc.ResolveService(service)
+	if err != nil {
+		return nil, err
+	}
+
+	m := d.FindMethodByName(method)
+	fs := m.GetInputType().GetFields()
+
+	fields := make([]string, len(fs))
+
+	for i, f := range fs {
+		fmt.Println(f.AsProto())
+		fields[i] = f.GetJSONName()
+	}
+
+	return fields, nil
 }
 
 // CloseConn closes the underlying connection
