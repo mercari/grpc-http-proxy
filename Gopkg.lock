@@ -595,6 +595,7 @@
   analyzer-version = 1
   input-imports = [
     "github.com/golang/protobuf/proto",
+    "github.com/golang/protobuf/ptypes/any",
     "github.com/jhump/protoreflect/desc",
     "github.com/jhump/protoreflect/dynamic",
     "github.com/jhump/protoreflect/dynamic/grpcdynamic",

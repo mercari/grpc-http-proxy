@@ -20,6 +20,7 @@ type Proxy struct {
 	cc        *grpc.ClientConn
 	reflector reflection.Reflector
 	stub      pstub.Stub
+	rc        *grpcreflect.Client
 }
 
 // NewProxy creates a new client
@@ -35,9 +36,15 @@ func (p *Proxy) Connect(ctx context.Context, target *url.URL) error {
 	}
 	p.cc = cc
 	rc := grpcreflect.NewClient(ctx, rpb.NewServerReflectionClient(p.cc))
+	p.rc = rc
 	p.reflector = reflection.NewReflector(rc)
 	p.stub = pstub.NewStub(grpcdynamic.NewStub(p.cc))
 	return err
+}
+
+// ListServices is
+func (p *Proxy) ListServices() ([]string, error) {
+	return p.rc.ListServices()
 }
 
 // CloseConn closes the underlying connection

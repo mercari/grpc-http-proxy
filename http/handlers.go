@@ -1,9 +1,12 @@
 package http
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -12,6 +15,7 @@ import (
 
 	perrors "github.com/mercari/grpc-http-proxy/errors"
 	"github.com/mercari/grpc-http-proxy/metadata"
+	"github.com/mercari/grpc-http-proxy/proxy"
 )
 
 type callee struct {
@@ -44,6 +48,44 @@ func (s *Server) DebugHandler() http.HandlerFunc {
 		j := s.discoverer.All()
 		fmt.Println(string(j))
 		w.Write(j)
+	}
+}
+
+// ListServicesHandler is
+func (s *Server) ListServicesHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+
+		urls, ok := r.URL.Query()["url"]
+		if !ok || len(urls[0]) < 1 {
+			fmt.Println("url params should have url key")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		u, err := url.Parse(urls[0])
+		if err != nil {
+			fmt.Println("url not good")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		p := proxy.NewProxy()
+		p.Connect(context.Background(), u)
+		defer p.CloseConn()
+
+		svc, err := p.ListServices()
+		if err != nil {
+			fmt.Printf("could not list services %s", err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		json.NewEncoder(w).Encode(svc)
 	}
 }
 
