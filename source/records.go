@@ -31,11 +31,8 @@ func (r *Records) ToJSON() []byte {
 	r.recordsMu.Lock()
 	defer r.recordsMu.Unlock()
 
-	fmt.Printf("Records are %v", r)
-
 	j, err := json.Marshal(r)
 	if err != nil {
-		fmt.Println(err)
 		return []byte(err.Error())
 	}
 
