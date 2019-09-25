@@ -1,13 +1,8 @@
 PACKAGES := $(shell go list ./...)
 
 .PHONY: build
-build: dep
+build:
 	@go build -o build/proxy cmd/proxy/main.go
-
-.PHONY: dep
-dep:
-	dep version || curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-	@dep ensure -v
 
 .PHONY: test
 test:
