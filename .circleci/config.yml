@@ -1,23 +1,18 @@
 version: 2
 
 defaults: &defaults
-  working_directory: /go/src/github.com/mercari/grpc-http-proxy
+  working_directory: /project
 
 golang: &golang
   <<: *defaults
   docker:
-    - image: golang:1.11-stretch
+    - image: golang:1.13-stretch
 
 jobs:
   test:
     <<: *golang
     steps:
     - checkout
-    - run:
-        name: Install dependencies and vendor
-        command: |
-          go get -u github.com/golang/dep/cmd/dep
-          make dep
     - run:
         name: Run test
         command: |
@@ -32,11 +27,6 @@ jobs:
     <<: *golang
     steps:
     - checkout
-    - run:
-        name: Install dependencies and vendor
-        command: |
-          go get -u github.com/golang/dep/cmd/dep
-          make dep
     - run:
         name: Run lint
         command: |

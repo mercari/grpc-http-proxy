@@ -2,6 +2,5 @@
 
 set -e
 
-go get -v -u github.com/golang/dep/cmd/dep
-go get -v -u github.com/golang/lint/golint
-go get -v -u github.com/haya14busa/reviewdog/cmd/reviewdog
+go get -v -u golang.org/x/lint
+go get -v -u github.com/reviewdog/reviewdog/cmd/reviewdog
