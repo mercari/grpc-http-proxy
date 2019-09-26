@@ -47,10 +47,11 @@ func NewService(
 	infFactory := informers.NewSharedInformerFactoryWithOptions(client,
 		30*time.Second, opts...)
 
+	rateLimiter := workqueue.NewItemExponentialFailureRateLimiter(5*time.Millisecond, 1000*time.Second)
 	k := &Service{
 		Records:   NewRecords(),
 		logger:    l,
-		queue:     workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "Services"),
+		queue:     workqueue.NewNamedRateLimitingQueue(rateLimiter, "Services"),
 		namespace: namespace,
 	}
 	serviceInformer := infFactory.Core().V1().Services()
@@ -63,10 +64,17 @@ func NewService(
 				k.logger.Error(fmt.Sprintf("event for invalid object; got %T want *core.Service", obj))
 				return
 			}
-			k.queue.AddRateLimited(Event{
+			event := &Event{
 				EventType: createEvent,
 				Svc:       svc,
-			})
+			}
+			k.queue.AddRateLimited(event)
+			k.logger.Debug(
+				"add queued",
+				zap.String("service", svc.Name),
+				zap.Int("retries", k.queue.NumRequeues(event)),
+				zap.Int("queue_length", k.queue.Len()),
+			)
 			return
 		},
 		DeleteFunc: func(obj interface{}) {
@@ -75,10 +83,17 @@ func NewService(
 				k.logger.Error(fmt.Sprintf("event for invalid object; got %T want *core.Service", obj))
 				return
 			}
-			k.queue.AddRateLimited(Event{
+			event := &Event{
 				EventType: deleteEvent,
 				Svc:       svc,
-			})
+			}
+			k.queue.AddRateLimited(event)
+			k.logger.Debug(
+				"delete queued",
+				zap.String("service", svc.Name),
+				zap.Int("retries", k.queue.NumRequeues(event)),
+				zap.Int("queue_length", k.queue.Len()),
+			)
 			return
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
@@ -92,11 +107,22 @@ func NewService(
 				k.logger.Error(fmt.Sprintf("event for invalid object; got %T want *core.Service", newObj))
 				return
 			}
-			k.queue.AddRateLimited(Event{
+			k.logger.Debug(
+				"adding service to queue",
+				zap.String("service", newSvc.ObjectMeta.Name),
+			)
+			event := &Event{
 				EventType: updateEvent,
 				Svc:       newSvc,
 				OldSvc:    oldSvc,
-			})
+			}
+			k.queue.AddRateLimited(event)
+			k.logger.Debug(
+				"update queued",
+				zap.String("service", newSvc.Name),
+				zap.Int("retries", k.queue.NumRequeues(event)),
+				zap.Int("queue_length", k.queue.Len()),
+			)
 			return
 		},
 	}
@@ -139,7 +165,7 @@ func (k *Service) processNextItem() bool {
 	}
 	err := func(obj interface{}) error {
 		defer k.queue.Done(obj)
-		evt, ok := obj.(Event)
+		evt, ok := obj.(*Event)
 		if !ok {
 			k.queue.Forget(obj)
 			return errors.Errorf("expected Event in workqueue but got %#v", obj)
@@ -155,7 +181,7 @@ func (k *Service) processNextItem() bool {
 	return true
 }
 
-func (k *Service) eventHandler(evt Event) {
+func (k *Service) eventHandler(evt *Event) {
 	switch evt.EventType {
 	case createEvent:
 		if !metav1.HasAnnotation(evt.Svc.ObjectMeta, serviceNameAnnotationKey) {
