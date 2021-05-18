@@ -28,7 +28,6 @@ jobs:
 #        name: Run coverage
 #        command: |
 #          make coverage
-#          bash <(curl -s https://codecov.io/bash)
 workflows:
   version: 2
   build-workflow:
