@@ -1,4 +1,4 @@
-version: 2
+version: 2.1
 
 defaults: &defaults
   working_directory: /go/src/github.com/mercari/grpc-http-proxy
@@ -7,6 +7,8 @@ golang: &golang
   <<: *defaults
   docker:
     - image: golang:1.11-stretch
+  environment:
+    GO111MODULE: "on"
 
 jobs:
   test:
@@ -16,7 +18,6 @@ jobs:
     - run:
         name: Install dependencies and vendor
         command: |
-          go get -u github.com/golang/dep/cmd/dep
           make dep
     - run:
         name: Run test
@@ -28,22 +29,8 @@ jobs:
 #        command: |
 #          make coverage
 #          bash <(curl -s https://codecov.io/bash)
-  lint:
-    <<: *golang
-    steps:
-    - checkout
-    - run:
-        name: Install dependencies and vendor
-        command: |
-          go get -u github.com/golang/dep/cmd/dep
-          make dep
-    - run:
-        name: Run lint
-        command: |
-          make reviewdog
 workflows:
   version: 2
   build-workflow:
     jobs:
     - test
-    - lint
