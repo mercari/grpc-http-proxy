@@ -1,8 +1,6 @@
 # grpc-http-proxy
 
 [![CircleCI](https://circleci.com/gh/mercari/grpc-http-proxy.svg?style=svg)](https://circleci.com/gh/mercari/grpc-http-proxy)
-[![codecov](https://codecov.io/gh/mercari/grpc-http-proxy/branch/master/graph/badge.svg?token=aTIypBc4JX)](https://codecov.io/gh/mercari/grpc-http-proxy)
-
 
 **:warning: This is not production ready**
 
