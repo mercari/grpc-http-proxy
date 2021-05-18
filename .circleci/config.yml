@@ -29,21 +29,8 @@ jobs:
 #        command: |
 #          make coverage
 #          bash <(curl -s https://codecov.io/bash)
-  lint:
-    <<: *golang
-    steps:
-    - checkout
-    - run:
-        name: Install dependencies and vendor
-        command: |
-          make dep
-    - run:
-        name: Run lint
-        command: |
-          make reviewdog
 workflows:
   version: 2
   build-workflow:
     jobs:
     - test
-    - lint
