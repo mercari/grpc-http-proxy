@@ -35,7 +35,7 @@ func TestProxy_Call(t *testing.T) {
 		sd := reflection.ServiceDescriptorFromFileDescriptor(fd, proxytest.TestService)
 		p.reflector = reflection.NewReflector(&proxytest.FakeGrpcreflectClient{ServiceDescriptor: sd.ServiceDescriptor})
 
-		_, err := p.Call(ctx, proxytest.TestService, proxytest.EmptyCall, []byte("{}"), &md)
+		_, _, err := p.Call(ctx, proxytest.TestService, proxytest.EmptyCall, []byte("{}"), &md)
 		if err != nil {
 			t.Fatalf("err should be nil, got %s", err.Error())
 		}
@@ -49,7 +49,7 @@ func TestProxy_Call(t *testing.T) {
 		p.stub = pstub.NewStub(&proxytest.FakeGrpcdynamicStub{})
 		p.reflector = reflection.NewReflector(&proxytest.FakeGrpcreflectClient{})
 
-		_, err := p.Call(ctx, proxytest.NotFoundService, proxytest.EmptyCall, []byte("{}"), &md)
+		_, _, err := p.Call(ctx, proxytest.NotFoundService, proxytest.EmptyCall, []byte("{}"), &md)
 		if err == nil {
 			t.Fatalf("err should be not nil")
 		}
@@ -65,7 +65,7 @@ func TestProxy_Call(t *testing.T) {
 		sd := reflection.ServiceDescriptorFromFileDescriptor(fd, proxytest.TestService)
 		p.reflector = reflection.NewReflector(&proxytest.FakeGrpcreflectClient{ServiceDescriptor: sd.ServiceDescriptor})
 
-		_, err := p.Call(ctx, proxytest.TestService, proxytest.UnaryCall, []byte("{}"), &md)
+		_, _, err := p.Call(ctx, proxytest.TestService, proxytest.UnaryCall, []byte("{}"), &md)
 		if err == nil {
 			t.Fatalf("err should be not nil")
 		}

@@ -86,7 +86,7 @@ func (s *Server) RPCCallHandler(newClient func() Client) http.HandlerFunc {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		response, err := client.Call(ctx, c.Service, c.Method, inputMessage, &md)
+		response, responseTrailer, err := client.Call(ctx, c.Service, c.Method, inputMessage, &md)
 		if err != nil {
 			returnError(w, errors.Cause(err).(perrors.Error))
 			s.logger.Error("error in handling call",
@@ -95,6 +95,10 @@ func (s *Server) RPCCallHandler(newClient func() Client) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
+		for key, val := range responseTrailer {
+			w.Header().Set(key, val[0])
+		}
+
 		w.WriteHeader(http.StatusOK)
 		w.Write(response)
 		return
